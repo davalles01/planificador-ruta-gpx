@@ -49,24 +49,36 @@ function initMap() {
   // Añadir mapa estándar por defecto
   capaEstandar.addTo(map);
 
+  const btnMapaEstandar = document.getElementById("btnMapaEstandar");
+  const btnMapaSatelite = document.getElementById("btnMapaSatelite");
+  const btnCurvasNivel = document.getElementById("btnCurvasNivel");
+
+  btnMapaEstandar.classList.add("active");
+
   // --- Eventos de botones ---
-  document.getElementById('btnMapaEstandar').addEventListener('click', () => {
+  btnMapaEstandar.addEventListener('click', () => {
     map.removeLayer(capaSatelite);
     capaEstandar.addTo(map);
+    btnMapaEstandar.classList.add("active");
+    btnMapaSatelite.classList.remove("active");
   });
 
-  document.getElementById('btnMapaSatelite').addEventListener('click', () => {
+  btnMapaSatelite.addEventListener('click', () => {
     map.removeLayer(capaEstandar);
     capaSatelite.addTo(map);
+    btnMapaSatelite.classList.add("active");
+    btnMapaEstandar.classList.remove("active");
   });
 
   // Alternar curvas de nivel
   let curvasActivas = false;
-  document.getElementById('btnCurvasNivel').addEventListener('click', () => {
+  btnCurvasNivel.addEventListener('click', () => {
     if (curvasActivas) {
+      btnCurvasNivel.textContent = "🏔️ Poner curvas de nivel";
       map.removeLayer(capaCurvas);
       curvasActivas = false;
     } else {
+      btnCurvasNivel.textContent = "❌ Quitar curvas de nivel";
       capaCurvas.addTo(map);
       curvasActivas = true;
     }
