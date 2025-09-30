@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Planificador de Ruta GPX</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <h1>🗺️ Planificador de Ruta GPX</h1>
+
+  <!-- Subida / arrastre -->
+  <section id="upload-section">
+    <input type="file" id="gpxFileInput" accept=".gpx,.xml">
+    <div id="dropZone">Arrastra aquí tu archivo GPX</div>
+  </section>
+
+  <!-- Datos grupo -->
+  <section id="group-section">
+    <label>
+      Número de personas:
+      <input type="number" id="numPersonas" min="1" value="1">
+    </label>
+    <label>
+      Edad media de chavales:
+      <input type="number" id="edadMedia" min="1" value="14">
+    </label>
+    <button id="generarTablaBtn">Generar tabla</button>
+  </section>
+
+  <!-- Contenedor principal: controles a la izquierda, mapa a la derecha -->
+  <div id="main-container">
+    <div id="controls-panel">
+      <!-- Controles de edición de waypoints -->
+      <section id="waypoint-controls">
+        <h2>Editar waypoints</h2>
+        <button id="selectWaypointBtn">🟡 Seleccionar waypoint</button>
+        <button id="addWaypointBtn">➕ Añadir waypoint</button>
+        <button id="removeWaypointBtn">🗑️ Eliminar waypoint</button>
+        <p id="editModeStatus">Modo edición: selección</p>
+      </section>
+
+      <!-- Panel de edición de waypoint -->
+      <section id="waypoint-editor" style="display: none;">
+        <h3>✏️ Editar waypoint</h3>
+        <form id="waypointForm">
+          <label>
+            Latitud:
+            <span id="wptLat"></span>
+          </label>
+          <label>
+            Longitud:
+            <span id="wptLon"></span>
+          </label>
+          <label>
+            Elevación:
+            <span id="wptEle"></span>
+          </label>
+          <label>
+            Nombre:
+            <input type="text" id="wptName">
+          </label>
+          <label>
+            Descripción:
+            <textarea id="wptDesc"></textarea>
+          </label>
+          <button type="submit">Guardar</button>
+          <button type="button" id="cancelEdit">Cancelar</button>
+        </form>
+      </section>
+
+      <!-- Info ruta -->
+      <section id="track-info">
+        <h2>Características de la ruta</h2>
+        <ul>
+          <li>Distancia: <span id="distancia"></span> km</li>
+          <li>Desnivel positivo: <span id="desnivelPos"></span> m</li>
+          <li>Desnivel negativo: <span id="desnivelNeg"></span> m</li>
+          <li>Duración estimada: <span id="duracion"></span></li>
+        </ul>
+      </section>
+
+      <button id="downloadGPXBtn">💾 Descargar GPX modificado</button>
+    </div>
+
+    <!-- Columna del mapa -->
+    <div id="map-column">
+      <section id="map-controls">
+        <button id="btnMapaEstandar">🗺️ Mapa estándar</button>
+        <button id="btnMapaSatelite">🛰️ Mapa satélite</button>
+        <button id="btnCurvasNivel">🏔️ Curvas de nivel</button>
+      </section>
+
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
