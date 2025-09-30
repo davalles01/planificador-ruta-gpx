@@ -460,16 +460,12 @@ function parseTrack(xml) {
     trackPolyline = L.polyline(latlngs, { color: 'red' }).addTo(map);
     map.fitBounds(trackPolyline.getBounds());
 
-    // Añadir al perfil de elevación
+    // Solo añadir el track al perfil de elevación
     elevationControl.clear();
     elevationControl.addData(trackPolyline);
 
-    // Añadir waypoints al perfil como marcadores con alt
-    for (let wp of waypoints) {
-      const wpLatLng = L.latLng(wp.lat, wp.lon, wp.ele);
-      const wpMarker = L.polyline([wpLatLng, wpLatLng], { color: 'blue' });
-      elevationControl.addData(wpMarker);
-    }
+    // 🔴 Eliminado: no añadimos waypoints al perfil
+    // (solo se muestran en el mapa, no en el gráfico)
 
     calcularInfoTrack(xml);
   }
