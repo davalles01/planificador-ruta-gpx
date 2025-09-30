@@ -1,4 +1,5 @@
 let temporalWaypointActivo = false;
+let elevationControl;
 let gpxXML = null; // XML original cargado
 let map;
 let trackPolyline;
@@ -70,6 +71,20 @@ function initMap() {
       curvasActivas = true;
     }
   });
+
+  // ===============================
+  // PERFIL DE ELEVACIÓN
+  // ===============================
+  elevationControl = L.control.elevation({
+    theme: "lime-theme",   // Tema del gráfico
+    detached: true,        // Se renderiza en un contenedor externo
+    elevationDiv: "#elevation-div",
+    followMarker: false,   // No queremos que se mueva un marcador sobre el mapa
+    imperial: false,       // Unidades métricas
+    distanceMarkers: true, // Km marcados en el eje X
+    collapsed: false
+  });
+  elevationControl.addTo(map);
 }
 
 // ===============================
@@ -421,14 +436,41 @@ function hideWaypointEditor() {
 // GPX TRACK
 // ===============================
 function parseTrack(xml) {
-  if (trackPolyline) map.removeLayer(trackPolyline);
+  if (trackPolyline) {
+    map.removeLayer(trackPolyline);
+    elevationControl.clear();  // Limpiar perfil anterior
+  }
 
   const trkpts = xml.getElementsByTagName('trkpt');
-  const path = Array.from(trkpts).map(p => [parseFloat(p.getAttribute('lat')), parseFloat(p.getAttribute('lon'))]);
+  const latlngs = [];
 
-  if (path.length > 0) {
-    trackPolyline = L.polyline(path, { color: 'red' }).addTo(map);
+  for (let pt of trkpts) {
+    const lat = parseFloat(pt.getAttribute('lat'));
+    const lon = parseFloat(pt.getAttribute('lon'));
+    const eleNode = pt.getElementsByTagName('ele')[0];
+    const ele = eleNode ? parseFloat(eleNode.textContent) : 0;
+
+    // Crear LatLng con altitud
+    const latlng = L.latLng(lat, lon, ele);
+    latlngs.push(latlng);
+  }
+
+  if (latlngs.length > 0) {
+    // Polyline para mostrar en el mapa
+    trackPolyline = L.polyline(latlngs, { color: 'red' }).addTo(map);
     map.fitBounds(trackPolyline.getBounds());
+
+    // Añadir al perfil de elevación
+    elevationControl.clear();
+    elevationControl.addData(trackPolyline);
+
+    // Añadir waypoints al perfil como marcadores con alt
+    for (let wp of waypoints) {
+      const wpLatLng = L.latLng(wp.lat, wp.lon, wp.ele);
+      const wpMarker = L.polyline([wpLatLng, wpLatLng], { color: 'blue' });
+      elevationControl.addData(wpMarker);
+    }
+
     calcularInfoTrack(xml);
   }
 }
@@ -461,6 +503,7 @@ function parseGPXFile(file) {
     gpxXML = new DOMParser().parseFromString(e.target.result, "application/xml");
     rebuildWaypointsFromXML(gpxXML);
     parseTrack(gpxXML);
+    elevationControl.loadGPX(gpxXML);
   };
   reader.readAsText(file);
 }
