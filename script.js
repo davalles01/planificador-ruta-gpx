@@ -103,7 +103,7 @@ function initMap() {
 // EDICIÓN DE WAYPOINTS
 // ===============================
 
-function createWaypointObject({ lat, lon, ele = 0, name = "", desc = "", xmlNode = null, original = false, iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png'}) {
+function createWaypointObject({ lat, lon, ele = 0, name = "", desc = "", xmlNode = null, original = false, iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png', pos = 0}) {
   // Crear marcador (NO draggable)
   const marker = L.marker([lat, lon], { draggable: false }).addTo(map);
 
@@ -134,7 +134,7 @@ function createWaypointObject({ lat, lon, ele = 0, name = "", desc = "", xmlNode
   const waypoint = { marker, name, desc, ele, lat, lon, original, xmlNode };
 
   // Evento de click para abrir el menú de edición
-  marker.on('click', () => onWaypointClick(marker));
+  marker.on('click', () => onWaypointClick({marker, pos}));
 
   waypoints.push(waypoint);
   return waypoint;
@@ -311,16 +311,24 @@ function cambiarModo(nuevoModo) {
   actualizarEstadoUI();
 }
 
-function onWaypointClick(marker) {
+function onWaypointClick({marker, pos = 0}) {
   const waypoint = waypoints.find(w => w.marker === marker);
   if (!waypoint) return;
 
   if (editMode === "remove") {
-    map.removeLayer(marker);
-    waypoints = waypoints.filter(w => w !== waypoint);
-    if (waypoint.xmlNode && gpxXML) waypoint.xmlNode.parentNode.removeChild(waypoint.xmlNode);
-    if (selectedWaypoint === waypoint) hideWaypointEditor();
-    return;
+    if(pos == 1){
+      const seguro = confirm(`¿Estás seguro de que quieres eliminar el waypoint "${waypoint.name}"? Es el inicio de ruta.`);
+      if (!seguro) return;
+    } else if(pos == 2){
+      const seguro = confirm(`¿Estás seguro de que quieres eliminar el waypoint "${waypoint.name}"?  Es el final de ruta.`);
+      if (!seguro) return;
+    } else{
+      map.removeLayer(marker);
+      waypoints = waypoints.filter(w => w !== waypoint);
+      if (waypoint.xmlNode && gpxXML) waypoint.xmlNode.parentNode.removeChild(waypoint.xmlNode);
+      if (selectedWaypoint === waypoint) hideWaypointEditor();
+      return;
+    }
   }
 
   if (editMode === "select") {
@@ -504,7 +512,11 @@ function rebuildWaypointsFromXML(xml) {
   const wptNodes = xml.getElementsByTagName('wpt');
   const latlngs = [];
   let iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png';
+  const trkpts = xml.getElementsByTagName('trkpt');
+  let pos;
+
   for (let i = 0; i < wptNodes.length; i++) {
+    pos = 0;
     const w = wptNodes[i];
     const lat = parseFloat(w.getAttribute('lat'));
     const lon = parseFloat(w.getAttribute('lon'));
@@ -519,18 +531,43 @@ function rebuildWaypointsFromXML(xml) {
       const ele = eleNode ? parseFloat(eleNode.textContent) : 0;
       const nameNode = w.getElementsByTagName('name')[0];
       const descNode = w.getElementsByTagName('desc')[0];
-      const name = nameNode ? nameNode.textContent : "";
-      const desc = descNode ? descNode.textContent : "";
+      let name = nameNode ? nameNode.textContent : "";
+      let desc = descNode ? descNode.textContent : "";
 
+      // Asignamos el color del icono y creamos inicio y final de ruta si hace falta
       if (i === 0) {
         iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png';
+        pos = 1;
+        const firstPt = trkpts[0];
+        const firstLat = parseFloat(firstPt.getAttribute('lat'));
+        const firstLon = parseFloat(firstPt.getAttribute('lon'));
+        const firstEleNode = firstPt.getElementsByTagName('ele')[0];
+        const firstEle = firstEleNode ? parseFloat(firstEleNode.textContent) : 0;
+        if(haversine(closestLat, closestLon, firstLat, firstLon) > 0.1 ){// Si la distancia con el primer punto del track es mayor a 100 m, se crea un inicio de track
+          createWaypointObject({ lat: firstLat, lon: firstLon, ele: firstEle, name:'Inicio de ruta', desc:'', original: true, iconUrl: iconUrl, pos: pos});
+          iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png'; // Reasignamos el color azul para el waypoint
+        } else {
+          name = name + ' - Inicio de Ruta';
+        }
       } else if (i === wptNodes.length - 1) {
         iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png';
+        pos = 2;
+        const lastPt = trkpts[trkpts.length - 1];
+        const lastLat = parseFloat(lastPt.getAttribute('lat'));
+        const lastLon = parseFloat(lastPt.getAttribute('lon'));
+        const lastEleNode = lastPt.getElementsByTagName('ele')[0];
+        const lastEle = lastEleNode ? parseFloat(lastEleNode.textContent) : 0;
+        if(haversine(closestLat, closestLon, lastLat, lastLon) > 0.1 ){// Si la distancia con el último punto del track es mayor a 100 m, se crea un final de track
+          createWaypointObject({ lat: lastLat, lon: lastLon, ele: lastEle, name:'Final de ruta', desc:'', original: true, iconUrl: iconUrl, pos: pos});
+          iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png'; // Reasignamos el color azul para el waypoint
+        } else {
+          name = name + ' - Final de Ruta';
+        }
       } else{
         iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png';
       }
 
-      createWaypointObject({ lat: closestLat, lon: closestLon, ele, name, desc, xmlNode: w, original: true, iconUrl: iconUrl});
+      createWaypointObject({ lat: closestLat, lon: closestLon, ele, name, desc, xmlNode: w, original: true, iconUrl: iconUrl, pos: pos});
       latlngs.push([closestLat, closestLon]);
     }
   }
