@@ -428,7 +428,6 @@ function parseTrack(xml) {
     latlngs.push(latlng);
   }
 
-  console.log('LatLngs del track:', latlngs);
   if (latlngs.length > 0) {
     // Polyline para mostrar en el mapa
     trackPolyline = L.polyline(latlngs, { color: 'red' }).addTo(map);
