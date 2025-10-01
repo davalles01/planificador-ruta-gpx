@@ -100,59 +100,10 @@ function initMap() {
 }
 
 // ===============================
-// GPX WAYPOINTS
-// ===============================
-function parseWaypoints(xml) {
-  waypoints.forEach(w => map.removeLayer(w.marker));
-  waypoints = [];
-
-  const wptNodes = xml.getElementsByTagName('wpt');
-  for (let w of wptNodes) {
-    const lat = parseFloat(w.getAttribute('lat'));
-    const lon = parseFloat(w.getAttribute('lon'));
-    const eleNode = w.getElementsByTagName('ele')[0];
-    const ele = eleNode ? parseFloat(eleNode.textContent) : 0;
-    const nameNode = w.getElementsByTagName('name')[0];
-    const descNode = w.getElementsByTagName('desc')[0];
-    const name = nameNode ? nameNode.textContent : "";
-    const desc = descNode ? descNode.textContent : "";
-
-    const marker = L.marker([lat, lon], { draggable: true }).addTo(map);
-    marker.on('click', () => onWaypointClick(marker));
-    marker.on('dragend', (e) => {
-      const pos = e.target.getLatLng();
-      const wp = waypoints.find(wp => wp.marker === marker);
-      if (!wp) return;
-      wp.lat = pos.lat;
-      wp.lon = pos.lng;
-      if (wp.xmlNode) {
-        wp.xmlNode.setAttribute("lat", wp.lat);
-        wp.xmlNode.setAttribute("lon", wp.lon);
-      }
-      if (selectedWaypoint === wp) {
-        document.getElementById('wptLat').value = wp.lat.toFixed(6);
-        document.getElementById('wptLon').value = wp.lon.toFixed(6);
-      }
-    });
-
-    waypoints.push({
-      marker,
-      name,
-      desc,
-      ele,
-      lat,
-      lon,
-      original: true,
-      xmlNode: w
-    });
-  }
-}
-
-// ===============================
 // EDICIÓN DE WAYPOINTS
 // ===============================
 
-function createWaypointObject({ lat, lon, ele = 0, name = "", desc = "", xmlNode = null, original = false }) {
+function createWaypointObject({ lat, lon, ele = 0, name = "", desc = "", xmlNode = null, original = false, iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png'}) {
   // Crear marcador (NO draggable)
   const marker = L.marker([lat, lon], { draggable: false }).addTo(map);
 
@@ -169,6 +120,16 @@ function createWaypointObject({ lat, lon, ele = 0, name = "", desc = "", xmlNode
     direction: 'top',
     className: 'waypoint-tooltip'
   });
+
+  const icon = L.icon({
+    iconUrl: iconUrl,
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+  marker.setIcon(icon);
 
   const waypoint = { marker, name, desc, ele, lat, lon, original, xmlNode };
 
@@ -227,8 +188,20 @@ function addWaypoint(latLng) {
   }
 
   // Buscar el trkpt más cercano
-  const closestPt = getClosestTrkpt(latLng.lat, latLng.lng);
-  if (!closestPt) return;
+  const closestPt = getClosestTrkpt(latLng.lat, latLng.lng, 0.025)
+  if (!closestPt) {
+    // Mostrar un pop-up temporal si no hay un trackpoint cercano
+    const popup = L.popup()
+      .setLatLng(latLng)
+      .setContent("Selecciona un punto dentro de la ruta")
+      .openOn(map);
+
+    // Cerrar el pop-up después de 3 segundos
+    setTimeout(() => {
+      map.closePopup(popup);
+    }, 3000);
+    return;
+  }
 
   const lat = parseFloat(closestPt.getAttribute('lat'));
   const lon = parseFloat(closestPt.getAttribute('lon'));
@@ -243,19 +216,9 @@ function addWaypoint(latLng) {
     name: "",
     desc: "",
     xmlNode: null,
-    original: false
+    original: false,
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png'
   });
-
-  // Cambiar el icono para indicar que es temporal (amarillo)
-  const tempIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  });
-  tempWaypoint.marker.setIcon(tempIcon);
 
   temporalWaypointActivo = true;
   selectedWaypoint = tempWaypoint;
@@ -366,13 +329,11 @@ function onWaypointClick(marker) {
   }
 }
 
-function getClosestTrkpt(lat, lon) {
+function getClosestTrkpt(lat, lon, maxDistance = 0.015) { // maxDistance en km. Por defecto 15 m
   if (!gpxXML) return null;
-
   const trkpts = gpxXML.getElementsByTagName('trkpt');
   let closestPt = null;
   let minDist = Infinity;
-
   for (let pt of trkpts) {
     const ptLat = parseFloat(pt.getAttribute('lat'));
     const ptLon = parseFloat(pt.getAttribute('lon'));
@@ -382,8 +343,8 @@ function getClosestTrkpt(lat, lon) {
       closestPt = pt;
     }
   }
-
-  return closestPt;
+  // Si el waypoint más cercano está más lejos que maxDistance, devolver null
+  return minDist <= maxDistance ? closestPt : null;
 }
 
 // ===============================
@@ -467,6 +428,7 @@ function parseTrack(xml) {
     latlngs.push(latlng);
   }
 
+  console.log('LatLngs del track:', latlngs);
   if (latlngs.length > 0) {
     // Polyline para mostrar en el mapa
     trackPolyline = L.polyline(latlngs, { color: 'red' }).addTo(map);
@@ -475,9 +437,6 @@ function parseTrack(xml) {
     // Solo añadir el track al perfil de elevación
     elevationControl.clear();
     elevationControl.addData(trackPolyline);
-
-    // 🔴 Eliminado: no añadimos waypoints al perfil
-    // (solo se muestran en el mapa, no en el gráfico)
 
     calcularInfoTrack(xml);
   }
@@ -509,6 +468,29 @@ function parseGPXFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     gpxXML = new DOMParser().parseFromString(e.target.result, "application/xml");
+
+    // Procesar track y calcular información
+    const trkpts = gpxXML.getElementsByTagName('trkpt');
+    const numTrkpts = trkpts.length;
+
+    // Calcula la distancia total
+    const totalDistance = calcularInfoTrack(gpxXML);
+
+    // Densidad de trackpoints
+    const trkptDensity = totalDistance / numTrkpts;
+
+    // Verifica si la densidad supera el umbral
+    if (trkptDensity > 0.015) {
+      const continuar = confirm(
+        `El archivo no tiene la exactitud idónea para algunas funcionalidades. ` +
+        `Densidad de trackpoints: ${trkptDensity.toFixed(3)} km/pt. ¿Deseas continuar?`
+      );
+      if (!continuar) {
+        return;
+      }
+    }
+
+    // Si el usuario decide continuar o la densidad es adecuada, procede con la carga
     rebuildWaypointsFromXML(gpxXML);
     parseTrack(gpxXML);
     elevationControl.loadGPX(gpxXML);
@@ -520,33 +502,39 @@ function rebuildWaypointsFromXML(xml) {
   // Borrar marcadores antiguos
   waypoints.forEach(w => map.removeLayer(w.marker));
   waypoints = [];
-
   const wptNodes = xml.getElementsByTagName('wpt');
   const latlngs = [];
-
-  for (let w of wptNodes) {
+  let iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png';
+  for (let i = 0; i < wptNodes.length; i++) {
+    const w = wptNodes[i];
     const lat = parseFloat(w.getAttribute('lat'));
     const lon = parseFloat(w.getAttribute('lon'));
-    const eleNode = w.getElementsByTagName('ele')[0];
-    const ele = eleNode ? parseFloat(eleNode.textContent) : 0;
-    const nameNode = w.getElementsByTagName('name')[0];
-    const descNode = w.getElementsByTagName('desc')[0];
-    const name = nameNode ? nameNode.textContent : "";
-    const desc = descNode ? descNode.textContent : "";
 
-    createWaypointObject({
-      lat,
-      lon,
-      ele,
-      name,
-      desc,
-      xmlNode: w,
-      original: true
-    });
+    // Buscar el trkpt más cercano dentro de un rango de error aceptable (15m)
+    const closestPt = getClosestTrkpt(lat, lon);
+    if (closestPt) {
+      // Ajustar el waypoint a la posición del trackpoint más cercano
+      const closestLat = parseFloat(closestPt.getAttribute('lat'));
+      const closestLon = parseFloat(closestPt.getAttribute('lon'));
+      const eleNode = w.getElementsByTagName('ele')[0];
+      const ele = eleNode ? parseFloat(eleNode.textContent) : 0;
+      const nameNode = w.getElementsByTagName('name')[0];
+      const descNode = w.getElementsByTagName('desc')[0];
+      const name = nameNode ? nameNode.textContent : "";
+      const desc = descNode ? descNode.textContent : "";
 
-    latlngs.push([lat, lon]);
+      if (i === 0) {
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png';
+      } else if (i === wptNodes.length - 1) {
+        iconUrl = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png';
+      } else{
+        iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png';
+      }
+
+      createWaypointObject({ lat: closestLat, lon: closestLon, ele, name, desc, xmlNode: w, original: true, iconUrl: iconUrl});
+      latlngs.push([closestLat, closestLon]);
+    }
   }
-
   if (latlngs.length > 0) {
     map.fitBounds(L.latLngBounds(latlngs));
   }
@@ -558,37 +546,35 @@ function rebuildWaypointsFromXML(xml) {
 function calcularInfoTrack(xml) {
   let distanciaTotal = 0, desnivelPos = 0, desnivelNeg = 0;
   const trksegs = xml.getElementsByTagName('trkseg');
-
   for (let seg of trksegs) {
     const trkpts = seg.getElementsByTagName('trkpt');
     let prevLat = null, prevLon = null, prevEle = null;
-
     for (let i = 0; i < trkpts.length; i++) {
       const pt = trkpts[i];
       const lat = parseFloat(pt.getAttribute('lat'));
       const lon = parseFloat(pt.getAttribute('lon'));
       const eleNode = pt.getElementsByTagName('ele')[0];
       const ele = eleNode ? parseFloat(eleNode.textContent) : 0;
-
       if (i > 0 && prevLat !== null) {
         distanciaTotal += haversine(prevLat, prevLon, lat, lon);
         const diffEle = ele - prevEle;
         if (diffEle > 0) desnivelPos += diffEle;
         else if (diffEle < 0) desnivelNeg += Math.abs(diffEle);
       }
-
-      prevLat = lat; prevLon = lon; prevEle = ele;
+      prevLat = lat;
+      prevLon = lon;
+      prevEle = ele;
     }
   }
-
   document.getElementById('distancia').textContent = distanciaTotal.toFixed(2);
   document.getElementById('desnivelPos').textContent = desnivelPos.toFixed(0);
   document.getElementById('desnivelNeg').textContent = desnivelNeg.toFixed(0);
-
   const tiempoHoras = (distanciaTotal / 4) + (desnivelPos / 400);
   const h = Math.floor(tiempoHoras);
   const m = Math.round((tiempoHoras - h) * 60);
   document.getElementById('duracion').textContent = `${h}h ${m}min`;
+
+  return distanciaTotal; // Devuelve la distancia total calculada
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
