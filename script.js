@@ -7,6 +7,10 @@ let waypoints = [];
 let editMode = "select"; // "select" | "add" | "remove"
 let selectedWaypoint = null;
 
+// Historial de waypoints
+let waypointHistory = [];
+let waypointHistoryIndex = -1;
+
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   setupFileInput();
@@ -14,6 +18,21 @@ document.addEventListener('DOMContentLoaded', () => {
   setupWaypointEditing();
   setupWaypointEditorForm();
   document.getElementById('generarTablaBtn').addEventListener('click', generarTabla);
+
+  //Generamos la funcionalidad de los botones undo redo
+  document.getElementById('undoWaypointBtn').addEventListener('click', () => {
+    if (waypointHistoryIndex > 0) {
+      waypointHistoryIndex--;
+      restoreWaypointHistory(waypointHistoryIndex);
+    }
+  });
+
+  document.getElementById('redoWaypointBtn').addEventListener('click', () => {
+    if (waypointHistoryIndex < waypointHistory.length - 1) {
+      waypointHistoryIndex++;
+      restoreWaypointHistory(waypointHistoryIndex);
+    }
+  });
 });
 
 // ===============================
@@ -118,7 +137,8 @@ function createWaypointObject({ lat, lon, ele = 0, name = "", desc = "", xmlNode
   marker.bindTooltip(tooltipContent, {
     permanent: false,
     direction: 'top',
-    className: 'waypoint-tooltip'
+    className: 'waypoint-tooltip',
+    offset: [0, -30]
   });
 
   const icon = L.icon({
@@ -286,6 +306,8 @@ function addWaypoint(latLng) {
     // Guardar definitivamente en la lista
     waypoints.push(tempWaypoint);
 
+    saveWaypointHistory();
+
     // Reset estado
     temporalWaypointActivo = false;
     selectedWaypoint = null;
@@ -322,18 +344,20 @@ function onWaypointClick({marker, pos = 0}) {
     } else if(pos == 2){
       const seguro = confirm(`¿Estás seguro de que quieres eliminar el waypoint "${waypoint.name}"?  Es el final de ruta.`);
       if (!seguro) return;
-    } else{
-      map.removeLayer(marker);
-      waypoints = waypoints.filter(w => w !== waypoint);
-      if (waypoint.xmlNode && gpxXML) waypoint.xmlNode.parentNode.removeChild(waypoint.xmlNode);
-      if (selectedWaypoint === waypoint) hideWaypointEditor();
-      return;
-    }
+    } 
+
+    map.removeLayer(marker);
+    waypoints = waypoints.filter(w => w !== waypoint);
+    if (waypoint.xmlNode && gpxXML) waypoint.xmlNode.parentNode.removeChild(waypoint.xmlNode);
+    if (selectedWaypoint === waypoint) hideWaypointEditor();
+    saveWaypointHistory();
+    return;
   }
 
   if (editMode === "select") {
     selectedWaypoint = waypoint;
     showWaypointEditor(waypoint);
+    saveWaypointHistory();
   }
 }
 
@@ -574,6 +598,7 @@ function rebuildWaypointsFromXML(xml) {
   if (latlngs.length > 0) {
     map.fitBounds(L.latLngBounds(latlngs));
   }
+  saveWaypointHistory();
 }
 
 // ===============================
@@ -657,4 +682,48 @@ function updateWaypointTooltip(waypoint) {
     </div>
   `;
   waypoint.marker.setTooltipContent(tooltipContent);
+}
+
+// FUNCIONES HISTORIAL Y BOTONES UNDO REDO
+
+function saveWaypointHistory() {
+  // Crea una copia profunda del estado actual
+  const snapshot = waypoints.map(w => ({
+    lat: w.lat,
+    lon: w.lon,
+    ele: w.ele,
+    name: w.name,
+    desc: w.desc,
+    // Puedes guardar más campos si necesitas (original, iconUrl, etc)
+  }));
+
+  // Si estás en medio del historial (después de un undo), descarta los "redos"
+  if (waypointHistoryIndex < waypointHistory.length - 1) {
+    waypointHistory = waypointHistory.slice(0, waypointHistoryIndex + 1);
+  }
+
+  waypointHistory.push(snapshot);
+  waypointHistoryIndex = waypointHistory.length - 1;
+}
+
+function restoreWaypointHistory(index) {
+  // Evita restaurar fuera de rango
+  if (index < 0 || index >= waypointHistory.length) return;
+
+  // Elimina los waypoints actuales del mapa
+  waypoints.forEach(w => map.removeLayer(w.marker));
+  waypoints = [];
+
+  // Reconstruye cada waypoint del snapshot
+  const snapshot = waypointHistory[index];
+  snapshot.forEach(w => {
+    createWaypointObject({
+      lat: w.lat,
+      lon: w.lon,
+      ele: w.ele,
+      name: w.name,
+      desc: w.desc,
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png'
+    });
+  });
 }

@@ -37,55 +37,64 @@ body {
   flex-direction: column;
 }
 
-/* Botones de mapa arriba del mapa */
 #map-controls {
   display: flex;
-  justify-content: center;
-  gap: 0.5rem;
+  justify-content: space-between; /* Espacia los dos bloques a izda/dcha */
+  align-items: center;
   margin-bottom: 0.5rem;
-}
-
-#map-controls button {
-  cursor: pointer;
-  padding: 0.4rem 0.8rem;
-  border: 1px solid #ccc;
-  background: #f0f0f0;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-#map-controls button:hover {
-  background: #e0e0e0;
-}
-
-#map-controls button.active {
-  background: #007bff;
-  color: white;
-  border-color: #0056b3;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+  width: 100%;
+  gap: 1rem;
 }
 
 #waypoint-undo-redo {
   display: flex;
   gap: 0.5rem;
-  margin-right: 1.5rem; /* Espacio a la derecha, separa de botones de mapa */
+  align-items: center;
+}
+#map-buttons {
+  display: flex;
+  gap: 0.5rem;
   align-items: center;
 }
 
-#waypoint-undo-redo button {
+#waypoint-undo-redo button,
+#map-buttons button {
   padding: 0.4rem 0.9rem;
   border: 1px solid #bbb;
   background: #e8e8e8;
   border-radius: 4px;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
   color: #333;
 }
-#waypoint-undo-redo button:hover {
+
+#waypoint-undo-redo button span.icon,
+#map-buttons button span.icon {
+  font-size: 1.5em;
+  line-height: 1;
+}
+
+#waypoint-undo-redo button:disabled,
+#map-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Hover para todos los botones (azul claro) */
+#waypoint-undo-redo button:hover:not(:disabled),
+#map-buttons button:hover:not(:disabled) {
   background: #d2e3fa;
   color: #007bff;
   border-color: #007bff;
+}
+
+/* Solo el activo (por ejemplo, el seleccionado de los mapas) */
+#map-buttons button.active {
+  background: #007bff;
+  color: white;
+  border-color: #0056b3;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 }
 
 /* Mapa con borde y margen inferior */

@@ -97,12 +97,18 @@
       <section id="map-controls">
         <!-- Botones de edición de waypoints -->
         <div id="waypoint-undo-redo">
-          <button id="undoWaypointBtn" title="Deshacer último cambio de waypoint">⏪ Deshacer</button>
-          <button id="redoWaypointBtn" title="Rehacer cambio de waypoint">⏩ Rehacer</button>
+          <button id="undoWaypointBtn" title="Deshacer último cambio de waypoint">
+            <span class="icon">↶</span> Deshacer
+          </button>
+          <button id="redoWaypointBtn" title="Rehacer cambio de waypoint">
+            <span class="icon">↷</span> Rehacer
+          </button>
         </div>
-        <button id="btnMapaEstandar">🗺️ Mapa estándar</button>
-        <button id="btnMapaSatelite">🛰️ Mapa satélite</button>
-        <button id="btnCurvasNivel">🏔️ Poner curvas de nivel</button>
+        <div id="map-buttons"> 
+          <button id="btnMapaEstandar">🗺️ Mapa estándar</button>
+          <button id="btnMapaSatelite">🛰️ Mapa satélite</button>
+          <button id="btnCurvasNivel">🏔️ Poner curvas de nivel</button>
+        </div>
       </section>
 
       <div id="map"></div>
