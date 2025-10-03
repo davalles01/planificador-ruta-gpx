@@ -305,7 +305,7 @@ function addWaypoint(latLng) {
 
     // Guardar definitivamente en la lista
     waypoints.push(tempWaypoint);
-
+    ordenarWaypointsPorTrack();
     saveWaypointHistory();
 
     // Reset estado
@@ -348,9 +348,10 @@ function onWaypointClick({marker, pos = 0}) {
 
     map.removeLayer(marker);
     waypoints = waypoints.filter(w => w !== waypoint);
+    ordenarWaypointsPorTrack();
+    saveWaypointHistory();
     if (waypoint.xmlNode && gpxXML) waypoint.xmlNode.parentNode.removeChild(waypoint.xmlNode);
     if (selectedWaypoint === waypoint) hideWaypointEditor();
-    saveWaypointHistory();
     return;
   }
 
@@ -598,6 +599,7 @@ function rebuildWaypointsFromXML(xml) {
   if (latlngs.length > 0) {
     map.fitBounds(L.latLngBounds(latlngs));
   }
+  ordenarWaypointsPorTrack();
   saveWaypointHistory();
 }
 
@@ -725,5 +727,16 @@ function restoreWaypointHistory(index) {
       desc: w.desc,
       iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png'
     });
+  });
+  ordenarWaypointsPorTrack();
+}
+
+// ORDENAR WAYPOINTS
+
+function ordenarWaypointsPorTrack() {
+  waypoints.sort((a, b) => {
+    const ia = (typeof a.closestTrkptIndex === "number") ? a.closestTrkptIndex : Infinity;
+    const ib = (typeof b.closestTrkptIndex === "number") ? b.closestTrkptIndex : Infinity;
+    return ia - ib;
   });
 }
