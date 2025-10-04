@@ -160,18 +160,35 @@ function createWaypointObject({ lat, lon, ele = 0, name = "", desc = "", xmlNode
   return waypoint;
 }
 
+function updateEditModeButtons() {
+  const selectBtn = document.getElementById('selectWaypointBtn');
+  const addBtn = document.getElementById('addWaypointBtn');
+  const removeBtn = document.getElementById('removeWaypointBtn');
+
+  // Quitar clase active de todos los botones
+  selectBtn.classList.remove('active');
+  addBtn.classList.remove('active');
+  removeBtn.classList.remove('active');
+
+  // Añadir clase active al botón correspondiente
+  switch(editMode) {
+    case "select":
+      selectBtn.classList.add('active');
+      break;
+    case "add":
+      addBtn.classList.add('active');
+      break;
+    case "remove":
+      removeBtn.classList.add('active');
+      break;
+  }
+}
+
 function setupWaypointEditing() {
   const selectBtn = document.getElementById('selectWaypointBtn');
   const addBtn = document.getElementById('addWaypointBtn');
   const removeBtn = document.getElementById('removeWaypointBtn');
   const status = document.getElementById('editModeStatus');
-
-  const updateStatus = () => {
-    let text = "selección";
-    if (editMode === "add") text = "añadir waypoint";
-    if (editMode === "remove") text = "eliminar waypoint";
-    status.textContent = `Modo edición: ${text}`;
-  };
 
   function intentarCambiarModo(nuevoModo) {
     if (temporalWaypointActivo) {
@@ -180,7 +197,7 @@ function setupWaypointEditing() {
     }
     if (selectedWaypoint) hideWaypointEditor();
     editMode = nuevoModo;
-    updateStatus();
+    updateEditModeButtons();
   }
 
   selectBtn.addEventListener('click', () => {
@@ -198,6 +215,8 @@ function setupWaypointEditing() {
   map.on('click', (e) => {
     if (editMode === "add") addWaypoint(e.latlng);
   });
+
+  updateEditModeButtons();
 }
 
 function addWaypoint(latLng) {
@@ -208,7 +227,7 @@ function addWaypoint(latLng) {
   }
 
   // Buscar el trkpt más cercano
-  const closestPt = getClosestTrkpt(latLng.lat, latLng.lng, 0.025)
+  const closestPt = getClosestTrkpt(latLng.lat, latLng.lng, 0.05)
   if (!closestPt) {
     // Mostrar un pop-up temporal si no hay un trackpoint cercano
     const popup = L.popup()
@@ -501,6 +520,13 @@ function parseGPXFile(file) {
   reader.onload = (e) => {
     gpxXML = new DOMParser().parseFromString(e.target.result, "application/xml");
 
+    // Obtener el nombre de la ruta del GPX (ajusta el selector según tu estructura XML)
+    const nameElement = gpxXML.querySelector('trk > name');
+    const trackName = nameElement ? nameElement.textContent : file.name.replace('.gpx', '');
+    
+    // Establecer el nombre en el input
+    document.getElementById('trackName').value = trackName;
+
     // Procesar track y calcular información
     const trkpts = gpxXML.getElementsByTagName('trkpt');
     const numTrkpts = trkpts.length;
@@ -662,16 +688,31 @@ function generarTabla() {
 document.getElementById('downloadGPXBtn').addEventListener('click', () => {
   if (!gpxXML) return;
 
+  // Actualizar el nombre en el XML antes de guardar
+  const newName = document.getElementById('trackName').value.trim();
+  const nameElement = gpxXML.querySelector('trk > name');
+  if (nameElement) {
+    nameElement.textContent = newName;
+  } else {
+    // Si no existe el elemento nombre, créalo
+    const trkElement = gpxXML.querySelector('trk');
+    if (trkElement) {
+      const newNameElement = gpxXML.createElement('name');
+      newNameElement.textContent = newName;
+      trkElement.insertBefore(newNameElement, trkElement.firstChild);
+    }
+  }
+
   const serializer = new XMLSerializer();
   const gpxStr = serializer.serializeToString(gpxXML);
   const blob = new Blob([gpxStr], { type: "application/gpx+xml" });
   const url = URL.createObjectURL(blob);
-
+  
   const a = document.createElement('a');
   a.href = url;
-  a.download = "ruta_modificada.gpx";
+  a.download = newName + ".gpx";  // Usar el nuevo nombre para el archivo
   a.click();
-
+  
   URL.revokeObjectURL(url);
 });
 

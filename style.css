@@ -1,33 +1,322 @@
-body {
-  font-family: sans-serif;
-  margin: 0;
-  padding: 1rem;
+/* Variables para colores y estilos consistentes */
+:root {
+  --primary-color: #2196F3;
+  --primary-dark: #1976D2;
+  --primary-light: #BBDEFB;
+  --accent-color: #FF4081;
+  --text-primary: #212121;
+  --text-secondary: #757575;
+  --divider-color: #BDBDBD;
+  --background-light: #f5f5f5;
+  --shadow-1: 0 2px 5px rgba(0,0,0,0.1);
+  --shadow-2: 0 4px 10px rgba(0,0,0,0.15);
+  --radius: 8px;
+  --transition: all 0.3s ease;
 }
 
+/* Estilos generales */
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 2rem;
+  background-color: var(--background-light);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+h1 {
+  color: var(--primary-dark);
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Zona de subida de archivo */
 #upload-section {
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+#gpxFileInput {
+  display: none;
 }
 
 #dropZone {
-  border: 2px dashed #999;
-  padding: 1rem;
+  border: 2px dashed var(--primary-color);
+  padding: 1.5rem;
   text-align: center;
-  color: #666;
-  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  margin-top: 1rem;
+  border-radius: var(--radius);
+  background: white;
+  transition: var(--transition);
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
 }
 
+#dropZone:hover {
+  border-color: var(--primary-dark);
+  background-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+#dropZone .upload-icon {
+  font-size: 1.5rem;
+}
+
+#dropZone .upload-text {
+  font-size: 1rem;
+}
+
+#dropZone.hover {
+  background-color: var(--primary-light);
+  border-color: var(--primary-dark);
+}
+
+/* Sección de grupo */
+#generarTablaBtn {
+  padding: 0.8rem 1.5rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 1rem;
+  box-shadow: var(--shadow-1);
+  /* Asegurarnos de que tiene el mismo estilo que los otros botones */
+  font-family: inherit;
+}
+
+#generarTablaBtn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+#generarTablaBtn:active {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-1);
+}
+
+/* Ajustar el contenedor para que el botón quede bien alineado */
+#group-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end; /* Alinea los elementos por la base */
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+}
+
+/* Mejorar el estilo de los inputs numéricos */
+#group-section input[type="number"] {
+  padding: 0.8rem;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--radius);
+  text-align: center;
+  font-size: 1rem;
+  transition: var(--transition);
+  width: 100px; /* Ancho fijo para mejor alineación */
+}
+
+#group-section input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+#group-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Contenedor principal */
 #main-container {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 2rem;
+  margin-top: 2rem;
 }
 
-/* Controles a la izquierda */
+/* Panel de control */
 #controls-panel {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Controles de waypoints */
+#waypoint-controls {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+}
+
+#waypoint-controls h2 {
+  color: var(--primary-dark);
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+#waypoint-controls button {
+  margin: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  border: 2px solid var(--primary-color);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 1rem;
+  box-shadow: var(--shadow-1);
+  position: relative;
+  overflow: hidden;
+}
+
+#waypoint-controls button:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+/* Estilo para el botón activo */
+#waypoint-controls button.active {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+  transform: translateY(1px);
+}
+
+/* Estilos específicos para cada botón */
+#selectWaypointBtn.active {
+  background-color: #FFC107;
+  border-color: #FFA000;
+  color: black;
+}
+
+#addWaypointBtn.active {
+  background-color: #4CAF50;
+  border-color: #388E3C;
+  color: white;
+}
+
+#removeWaypointBtn.active {
+  background-color: #F44336;
+  border-color: #D32F2F;
+  color: white;
+}
+
+/* Editor de waypoints */
+#waypoint-editor {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+}
+
+#waypoint-editor h3 {
+  color: var(--primary-dark);
+  margin-top: 0;
+}
+
+#waypoint-editor form {
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
+}
+
+#waypoint-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+#waypoint-editor input,
+#waypoint-editor textarea {
+  padding: 0.8rem;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+#waypoint-editor input:focus,
+#waypoint-editor textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* Info de track */
+#track-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#track-info li {
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--divider-color);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#track-info li:last-child {
+  border-bottom: none;
+}
+
+/* Estilos específicos para el contenedor del nombre */
+.track-name-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Estilos para el input del nombre */
+#trackName {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: transparent;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+#trackName:hover {
+  border-color: var(--primary-color);
+}
+
+#trackName:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* Hacer que los valores numéricos se alineen bien */
+#track-info li span {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 /* Columna del mapa */
@@ -35,151 +324,148 @@ body {
   flex: 2;
   display: flex;
   flex-direction: column;
-}
-
-#map-controls {
-  display: flex;
-  justify-content: space-between; /* Espacia los dos bloques a izda/dcha */
-  align-items: center;
-  margin-bottom: 0.5rem;
-  width: 100%;
   gap: 1rem;
 }
 
+/* Controles del mapa */
+#map-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+}
+
+/* Botones de undo/redo */
 #waypoint-undo-redo {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
 }
+
+#waypoint-undo-redo button {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--primary-color);
+  background: white;
+  color: var(--primary-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#waypoint-undo-redo button:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: white;
+}
+
+#waypoint-undo-redo button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: var(--divider-color);
+  color: var(--text-secondary);
+}
+
+/* Botones de tipo de mapa */
 #map-buttons {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
 }
 
-#waypoint-undo-redo button,
 #map-buttons button {
-  padding: 0.4rem 0.9rem;
-  border: 1px solid #bbb;
-  background: #e8e8e8;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--primary-color);
+  background: white;
+  color: var(--primary-color);
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  color: #333;
+  transition: var(--transition);
 }
 
-#waypoint-undo-redo button span.icon,
-#map-buttons button span.icon {
-  font-size: 1.5em;
-  line-height: 1;
+#map-buttons button:hover {
+  background: var(--primary-light);
 }
 
-#waypoint-undo-redo button:disabled,
-#map-buttons button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Hover para todos los botones (azul claro) */
-#waypoint-undo-redo button:hover:not(:disabled),
-#map-buttons button:hover:not(:disabled) {
-  background: #d2e3fa;
-  color: #007bff;
-  border-color: #007bff;
-}
-
-/* Solo el activo (por ejemplo, el seleccionado de los mapas) */
 #map-buttons button.active {
-  background: #007bff;
+  background: var(--primary-color);
   color: white;
-  border-color: #0056b3;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* Mapa con borde y margen inferior */
+/* Mapa y perfil de elevación */
 #map {
-  width: 100%;
   height: 600px;
-  border: 2px solid #444;  /* borde de 2px */
-  margin-bottom: 10px;     /* espacio vertical entre mapa y perfil */
-  box-sizing: border-box;
-}
-
-/* Perfil de elevación con borde */
-#elevation-div {
-  width: 100%;
-  border: 2px solid #444;  /* borde de 2px */
-  box-sizing: border-box;
+  border-radius: var(--radius);
   overflow: hidden;
-  margin-bottom: 10px;     /* opcional: separarlo del resto */
+  box-shadow: var(--shadow-2);
 }
 
-#track-info {
-  margin-top: 1rem;
-}
-
-#waypoint-controls {
-  margin-top: 1rem;
-}
-
-#waypoint-controls button {
-  margin-right: 0.5rem;
-  cursor: pointer;
-}
-
-#waypoint-editor {
-  margin-top: 1rem;
-  border: 1px solid #ccc;
+#elevation-div {
+  background: white;
+  border-radius: var(--radius);
   padding: 1rem;
-  background: #f9f9f9;
-  max-width: 400px;
+  box-shadow: var(--shadow-1);
 }
 
-#waypoint-editor form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-#waypoint-editor label {
-  display: flex;
-  flex-direction: column;
-}
-
-#waypoint-editor input,
-#waypoint-editor textarea {
-  width: 100%;
-  margin-top: 0.2rem;
-}
-
-#group-section {
-  display: flex;
-  justify-content: center; /* Centra horizontalmente */
-  align-items: center;     /* Alinea verticalmente los elementos */
-  gap: 1rem;               /* Espaciado entre elementos */
-  margin-bottom: 1rem;
-  flex-wrap: wrap;         /* Permite que en pantallas pequeñas se adapte */
-}
-
-#group-section label {
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-}
-
-#group-section button {
-  cursor: pointer;
-  padding: 0.5rem 1rem;
-}
-
+/* Tooltips de waypoints */
 .leaflet-tooltip.waypoint-tooltip {
   background-color: white;
-  color: black;
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 6px 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  font-size: 13px;
+  color: var(--text-primary);
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.8rem;
+  box-shadow: var(--shadow-2);
+  font-size: 0.9rem;
   line-height: 1.4;
+}
+
+/* Botón de descarga */
+#downloadGPXBtn {
+  padding: 1rem 2rem;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 1rem;
+  box-shadow: var(--shadow-1);
+  margin-top: 1rem;
+}
+
+#downloadGPXBtn:hover {
+  background: #e91e63;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  #main-container {
+    flex-direction: column;
+  }
+  
+  #controls-panel,
+  #map-column {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 1rem;
+  }
+  
+  #map-controls {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  #waypoint-undo-redo,
+  #map-buttons {
+    width: 100%;
+    justify-content: center;
+  }
 }
