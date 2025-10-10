@@ -340,6 +340,51 @@ input, textarea {
   box-shadow: 0 0 0 2px var(--primary-light);
 }
 
+/* BOTONES DEL EDITOR DE WAYPOINTS */
+
+#waypointForm button {
+  padding: 0.8rem 1.2rem;
+  border: 2px solid var(--primary-color);
+  border-radius: var(--radius);
+  background: var(--bg-element);
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 1rem;
+  box-shadow: var(--shadow-1);
+}
+
+#waypointForm button[type="submit"] {
+  background: var(--primary-color);
+  color: white;
+}
+
+#waypointForm button:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  color: white;
+}
+
+#waypointForm button:active {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-1);
+}
+
+/* Contenedor para los botones */
+#waypointForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Grupo de botones al final del formulario */
+#waypointForm div:last-child {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 /* Info de track */
 #track-info ul {
   list-style: none;
