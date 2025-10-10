@@ -16,8 +16,11 @@
   <script src="https://unpkg.com/@raruto/leaflet-elevation/dist/leaflet-elevation.min.js"></script>
 </head>
 <body>
+  <div id="theme-toggle" class="theme-container">
+    <button id="lightModeBtn" class="active" title="Modo día">☀️</button>
+    <button id="darkModeBtn" title="Modo noche">🌙</button>
+  </div>
   <h1>🗺️ Planificador de Ruta GPX</h1>
-
   <!-- Subida / arrastre -->
   <section id="upload-section">
     <input type="file" id="gpxFileInput" accept=".gpx,.xml">

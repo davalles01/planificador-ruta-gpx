@@ -1,17 +1,76 @@
 /* Variables para colores y estilos consistentes */
 :root {
+  /* Colores principales */
   --primary-color: #2196F3;
   --primary-dark: #1976D2;
   --primary-light: #BBDEFB;
   --accent-color: #FF4081;
-  --text-primary: #212121;
+  
+  /* Variables modo claro (default) */
+  --bg-color: #f5f5f5;
+  --bg-element: #ffffff;
+  --text-color: #212121;
   --text-secondary: #757575;
-  --divider-color: #BDBDBD;
-  --background-light: #f5f5f5;
+  --border-color: #BDBDBD;
+  
+  /* Efectos y dimensiones */
   --shadow-1: 0 2px 5px rgba(0,0,0,0.1);
   --shadow-2: 0 4px 10px rgba(0,0,0,0.15);
   --radius: 8px;
   --transition: all 0.3s ease;
+}
+
+/* Variables para modo oscuro */
+[data-theme="dark"] {
+  --bg-color: #121212;
+  --bg-element: #1e1e1e;
+  --text-color: #ffffff;
+  --text-secondary: #b0b0b0;
+  --border-color: #404040;
+  --primary-color: #64B5F6;
+  --primary-dark: #42A5F5;
+  --primary-light: #2196F3;
+  --shadow-1: 0 2px 5px rgba(0,0,0,0.3);
+  --shadow-2: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+/*  BOTONES DE TEMA  */
+
+.theme-container {
+  position: absolute;
+  top: 1rem;
+  right: 2rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 1000;
+}
+
+.theme-container button {
+  width: 40px;
+  height: 40px;
+  padding: 0.5rem;
+  border: 1px solid var(--primary-color);
+  background: var(--bg-element);
+  color: var(--text-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-1);
+}
+
+.theme-container button:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+.theme-container button.active {
+  background: var(--primary-color);
+  color: white;
 }
 
 /* Estilos generales */
@@ -19,9 +78,10 @@ body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   margin: 0;
   padding: 2rem;
-  background-color: var(--background-light);
-  color: var(--text-primary);
   line-height: 1.6;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  position: relative;
 }
 
 h1 {
@@ -30,6 +90,18 @@ h1 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .theme-container {
+    top: 0.5rem;
+    right: 1rem;
+  }
+  
+  h1 {
+    margin-top: 3rem;
+  }
 }
 
 /* Zona de subida de archivo */
@@ -49,7 +121,7 @@ h1 {
   color: var(--text-secondary);
   margin-top: 1rem;
   border-radius: var(--radius);
-  background: white;
+  background: var(--bg-element);
   transition: var(--transition);
   cursor: pointer;
   box-shadow: var(--shadow-1);
@@ -112,7 +184,7 @@ h1 {
   gap: 2rem;
   margin-bottom: 2rem;
   flex-wrap: wrap;
-  background: white;
+  background: var(--bg-element);
   padding: 1.5rem;
   border-radius: var(--radius);
   box-shadow: var(--shadow-1);
@@ -160,7 +232,7 @@ h1 {
 
 /* Controles de waypoints */
 #waypoint-controls {
-  background: white;
+  background: var(--bg-element);
   padding: 1.5rem;
   border-radius: var(--radius);
   box-shadow: var(--shadow-1);
@@ -177,7 +249,7 @@ h1 {
   padding: 0.8rem 1.2rem;
   border: 2px solid var(--primary-color);
   border-radius: var(--radius);
-  background: white;
+  background: var(--bg-element);
   color: var(--primary-color);
   cursor: pointer;
   transition: var(--transition);
@@ -222,7 +294,7 @@ h1 {
 
 /* Editor de waypoints */
 #waypoint-editor {
-  background: white;
+  background: var(--bg-element);
   padding: 1.5rem;
   border-radius: var(--radius);
   box-shadow: var(--shadow-1);
@@ -253,6 +325,12 @@ h1 {
   border-radius: var(--radius);
   font-size: 1rem;
   transition: var(--transition);
+}
+
+/* Añadir estilos para inputs y textareas */
+input, textarea {
+  background-color: var(--bg-element);
+  color: var(--text-color);
 }
 
 #waypoint-editor input:focus,
@@ -316,7 +394,7 @@ h1 {
 #track-info li span {
   margin-left: auto;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 /* Columna del mapa */
@@ -332,7 +410,7 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: var(--bg-element);
   padding: 1rem;
   border-radius: var(--radius);
   box-shadow: var(--shadow-1);
@@ -347,7 +425,7 @@ h1 {
 #waypoint-undo-redo button {
   padding: 0.6rem 1rem;
   border: 1px solid var(--primary-color);
-  background: white;
+  background: var(--bg-element);
   color: var(--primary-color);
   border-radius: var(--radius);
   cursor: pointer;
@@ -378,7 +456,7 @@ h1 {
 #map-buttons button {
   padding: 0.6rem 1rem;
   border: 1px solid var(--primary-color);
-  background: white;
+  background: var(--bg-element);
   color: var(--primary-color);
   border-radius: var(--radius);
   cursor: pointer;
@@ -403,7 +481,7 @@ h1 {
 }
 
 #elevation-div {
-  background: white;
+  background: var(--bg-element);
   border-radius: var(--radius);
   padding: 1rem;
   box-shadow: var(--shadow-1);
@@ -411,7 +489,7 @@ h1 {
 
 /* Tooltips de waypoints */
 .leaflet-tooltip.waypoint-tooltip {
-  background-color: white;
+  background-color: var(--bg-element);
   color: var(--text-primary);
   border: none;
   border-radius: var(--radius);

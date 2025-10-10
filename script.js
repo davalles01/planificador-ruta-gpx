@@ -33,6 +33,32 @@ document.addEventListener('DOMContentLoaded', () => {
       restoreWaypointHistory(waypointHistoryIndex);
     }
   });
+
+  // Configuración del tema
+  const lightBtn = document.getElementById('lightModeBtn');
+  const darkBtn = document.getElementById('darkModeBtn');
+  
+  // Comprobar si hay un tema guardado
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    lightBtn.classList.remove('active');
+    darkBtn.classList.add('active');
+  }
+  
+  lightBtn.addEventListener('click', () => {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+    lightBtn.classList.add('active');
+    darkBtn.classList.remove('active');
+  });
+  
+  darkBtn.addEventListener('click', () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+    lightBtn.classList.remove('active');
+    darkBtn.classList.add('active');
+  });
 });
 
 // ===============================
