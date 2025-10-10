@@ -385,6 +385,31 @@ input, textarea {
   margin-top: 1rem;
 }
 
+#waypointForm input,
+#waypointForm textarea {
+  padding: 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  background: var(--bg-element);
+  color: var(--text-color);
+  width: calc(100% - 1.6rem); /* Restamos el doble del padding */
+  box-sizing: border-box;
+  transition: var(--transition);
+}
+
+#waypointForm input:hover,
+#waypointForm textarea:hover {
+  border-color: var(--primary-color);
+}
+
+#waypointForm input:focus,
+#waypointForm textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
 /* Info de track */
 #track-info ul {
   list-style: none;
@@ -415,12 +440,12 @@ input, textarea {
 /* Estilos para el input del nombre */
 #trackName {
   flex: 1;
-  padding: 0.5rem;
-  border: 1px solid var(--divider-color);
+  padding: 0.8rem;
+  border: 1px solid var(--border-color);
   border-radius: var(--radius);
   font-size: 1rem;
-  color: var(--text-primary);
-  background: transparent;
+  background: var(--bg-element);
+  color: var(--text-color);
   transition: var(--transition);
   font-family: inherit;
 }
