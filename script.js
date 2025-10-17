@@ -102,31 +102,39 @@ function initMap() {
 
   // --- Eventos de botones ---
   btnMapaEstandar.addEventListener('click', () => {
+    // Quitar todas las capas
     map.removeLayer(capaSatelite);
+    map.removeLayer(capaCurvas);
+    // Añadir capa estándar
     capaEstandar.addTo(map);
+    // Actualizar botones
     btnMapaEstandar.classList.add("active");
     btnMapaSatelite.classList.remove("active");
+    btnCurvasNivel.classList.remove("active");
   });
 
   btnMapaSatelite.addEventListener('click', () => {
+    // Quitar todas las capas
     map.removeLayer(capaEstandar);
+    map.removeLayer(capaCurvas);
+    // Añadir capa satélite
     capaSatelite.addTo(map);
+    // Actualizar botones
     btnMapaSatelite.classList.add("active");
     btnMapaEstandar.classList.remove("active");
+    btnCurvasNivel.classList.remove("active");
   });
 
-  // Alternar curvas de nivel
-  let curvasActivas = false;
   btnCurvasNivel.addEventListener('click', () => {
-    if (curvasActivas) {
-      btnCurvasNivel.textContent = "🏔️ Poner curvas de nivel";
-      map.removeLayer(capaCurvas);
-      curvasActivas = false;
-    } else {
-      btnCurvasNivel.textContent = "❌ Quitar curvas de nivel";
-      capaCurvas.addTo(map);
-      curvasActivas = true;
-    }
+    // Quitar todas las capas
+    map.removeLayer(capaEstandar);
+    map.removeLayer(capaSatelite);
+    // Añadir capa de curvas
+    capaCurvas.addTo(map);
+    // Actualizar botones
+    btnCurvasNivel.classList.add("active");
+    btnMapaEstandar.classList.remove("active");
+    btnMapaSatelite.classList.remove("active");
   });
 
   // ===============================
