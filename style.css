@@ -618,3 +618,128 @@ input, textarea {
     justify-content: center;
   }
 }
+
+/* Estilo para el select */
+#nivelTecnico {
+  padding: 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  width: 200px;
+  background: var(--bg-element);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+/* Animación de parpadeo para validación */
+@keyframes borderBlink {
+  0% { border-color: var(--border-color); }
+  50% { border-color: #ff0000; }
+  100% { border-color: var(--border-color); }
+}
+
+.validation-error {
+  animation: borderBlink 0.5s 2;
+}
+
+/* === TABLA DE PROGRESIÓN POR WAYPOINTS === */
+.tabla-waypoints {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 2rem;
+  background: var(--bg-element, #f9fbfc);
+  font-size: 1rem;
+  box-shadow: var(--shadow-2,0 2px 5px rgba(0,0,0,0.1));
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tabla-waypoints th, .tabla-waypoints td {
+  border: 1px solid #e0e8ef;
+  padding: 0.7rem 0.5rem;
+  text-align: center;
+}
+.tabla-waypoints th {
+  background: #eaf1fb;
+  font-weight: bold;
+  color: #222;
+}
+.tabla-waypoints thead tr th {
+  border-bottom: 2px solid #a8c3e6;
+}
+
+.tabla-waypoints .waypoint-nombre {
+  font-weight: bold;
+  text-align: left;
+  padding-left: 1rem;
+}
+.tabla-waypoints .waypoint-inicio {
+  background: #d6ffe6;
+  border-left: 4px solid #30ce7d;
+  color: #188848;
+}
+.tabla-waypoints .waypoint-fin {
+  background: #ffd6d6;
+  border-left: 4px solid #ff3c3c;
+  color: #a32a2a;
+}
+.tabla-waypoints .decision-checkbox {
+  margin-top: 0.2em;
+  margin-bottom: 0.4em;
+}
+.tabla-waypoints .edit-lapiz {
+  cursor: pointer;
+  font-size: 1.1em;
+  margin-left: 0.4em;
+  color: #888;
+  vertical-align: middle;
+}
+.tabla-waypoints .edit-lapiz:hover {
+  color: #1976D2;
+}
+.tabla-waypoints .notes-text {
+  color: #aaa;
+  font-style: italic;
+}
+.tabla-waypoints .tiempo-tramo, .tabla-waypoints .tiempo-total {
+  font-variant-numeric: tabular-nums;
+  font-family: monospace;
+}
+
+/* Subcolores para datos */
+.tabla-waypoints .positivo { color: #009e38; font-weight: bold;}
+.tabla-waypoints .negativo { color: #df2a2a; font-weight: bold;}
+.tabla-waypoints .distancia { color: #2176d2; font-weight: bold;}
+.tabla-waypoints .coordenada { color: #222; font-family: monospace; }
+.tabla-waypoints .altitud { color: #888; font-size: 0.95em; }
+
+/* Responsive horizontal scroll */
+@media (max-width: 1150px) {
+  .tabla-waypoints {
+    font-size: 0.9rem;
+    display: block;
+    overflow-x: auto;
+    width: 100vw;
+  }
+}
+
+/* Mejorar inputs inline */
+.tabla-waypoints input[type="number"], .tabla-waypoints input[type="text"] {
+  width: 3em;
+  font-size: 1em;
+  text-align: center;
+  border: 1px solid #bcd;
+  border-radius: 4px;
+  margin: 0 0.3em;
+}
+.tabla-waypoints .editable-cell {
+  background: #fff9e6;
+}
+
+.tabla-waypoints .hora-editable {
+  font-family: monospace;
+  border: 1px solid #bcd;
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  width: 4.5em;
+}

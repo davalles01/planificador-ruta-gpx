@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDragAndDrop();
   setupWaypointEditing();
   setupWaypointEditorForm();
-  document.getElementById('generarTablaBtn').addEventListener('click', generarTabla);
+  document.getElementById('generarTablaBtn').addEventListener('click', generarTablaWaypoints);
 
   //Generamos la funcionalidad de los botones undo redo
   document.getElementById('undoWaypointBtn').addEventListener('click', () => {
@@ -713,12 +713,6 @@ function haversine(lat1, lon1, lat2, lon2) {
 // ===============================
 // TABLA Y DESCARGA GPX
 // ===============================
-function generarTabla() {
-  const num = document.getElementById('numPersonas').value;
-  const edad = document.getElementById('edadMedia').value;
-  alert(`Tabla pendiente de implementar\nPersonas: ${num}\nEdad media: ${edad}`);
-}
-
 document.getElementById('downloadGPXBtn').addEventListener('click', () => {
   if (!gpxXML) return;
 
@@ -809,9 +803,331 @@ function restoreWaypointHistory(index) {
 // ORDENAR WAYPOINTS
 
 function ordenarWaypointsPorTrack() {
-  waypoints.sort((a, b) => {
-    const ia = (typeof a.closestTrkptIndex === "number") ? a.closestTrkptIndex : Infinity;
-    const ib = (typeof b.closestTrkptIndex === "number") ? b.closestTrkptIndex : Infinity;
-    return ia - ib;
+    if (!gpxXML || !waypoints || waypoints.length === 0) return;
+
+    // Obtener todos los trackpoints una sola vez
+    const trkpts = Array.from(gpxXML.getElementsByTagName('trkpt'));
+    if (trkpts.length === 0) return;
+
+    // Para cada waypoint, encontrar el índice del trackpoint más cercano
+    waypoints.forEach(wpt => {
+        let minDist = Infinity;
+        let minIdx = 0;
+        for (let i = 0; i < trkpts.length; i++) {
+            const trkLat = parseFloat(trkpts[i].getAttribute('lat'));
+            const trkLon = parseFloat(trkpts[i].getAttribute('lon'));
+            const dist = Math.abs(wpt.lat - trkLat) + Math.abs(wpt.lon - trkLon);
+            if (dist < minDist) {
+                minDist = dist;
+                minIdx = i;
+            }
+        }
+        wpt._trkIdx = minIdx; // Guardar el índice del trackpoint más cercano
+    });
+
+    // Ordenar los waypoints por el índice del trackpoint más cercano
+    waypoints.sort((a, b) => a._trkIdx - b._trkIdx);
+
+    // Eliminar posibles duplicados consecutivos (mismo punto)
+    for (let i = waypoints.length - 1; i > 0; i--) {
+        if (waypoints[i]._trkIdx === waypoints[i - 1]._trkIdx) {
+            // Elimina el segundo (puedes cambiar la lógica si prefieres el primero)
+            waypoints.splice(i, 1);
+        }
+    }
+}
+
+// Función para convertir coordenadas GPS a UTM (zona 31T)
+function convertirUTM(lat, lon) {
+    // Parámetros del elipsoide WGS84
+    const a = 6378137;
+    const f = 1 / 298.257223563;
+    const e2 = 2 * f - f * f;
+    
+    // Zona UTM 31T
+    const zonaCentral = -3; // Meridiano central de la zona 31
+    
+    // Conversión a radianes
+    const latRad = lat * Math.PI / 180;
+    const lonRad = lon * Math.PI / 180;
+    
+    // Parámetros de la proyección
+    const k0 = 0.9996;
+    const FalsoEste = 500000;
+    const FalsoNorte = (lat < 0) ? 10000000 : 0;
+    
+    // Cálculos intermedios
+    const N = a / Math.sqrt(1 - e2 * Math.sin(latRad)**2);
+    const T = Math.tan(latRad)**2;
+    const C = e2 / (1 - e2) * Math.cos(latRad)**2;
+    const A = (lonRad - (zonaCentral * Math.PI / 180)) * Math.cos(latRad);
+    
+    // Cálculo de coordenadas UTM
+    const M = a * ((1 - e2/4 - 3*e2**2/64 - 5*e2**3/256) * latRad - 
+               (3*e2/8 + 3*e2**2/32 + 45*e2**3/1024) * Math.sin(2*latRad) + 
+               (15*e2**2/256 + 45*e2**3/1024) * Math.sin(4*latRad) - 
+               (35*e2**3/3072) * Math.sin(6*latRad));
+    
+    const Este = k0 * N * (A + (1 - T + C) * A**3/6 + 
+                (5 - 18*T + T**2 + 72*C - 58*e2) * A**5/120) + FalsoEste;
+    
+    const Norte = k0 * (M + N * Math.tan(latRad) * 
+                (A**2/2 + (5 - T + 9*C + 4*C**2) * A**4/24 + 
+                (61 - 58*T + T**2 + 600*C - 330*e2) * A**6/720)) + FalsoNorte;
+    
+    return {
+        x: Este / 1000, // Convertir a km
+        y: Norte // Ya está en metros
+    };
+}
+
+function generarTablaWaypoints() {
+  // Validación previa
+  let isValid = true;
+  if (!document.getElementById('numPersonas').value) {
+    document.getElementById('numPersonas').classList.add('validation-error');
+    mostrarAviso('Introduce el número de personas');
+    isValid = false;
+  }
+  if (!document.getElementById('nivelTecnico').value) {
+    document.getElementById('nivelTecnico').classList.add('validation-error');
+    mostrarAviso('Selecciona el nivel técnico del grupo');
+    isValid = false;
+  }
+  if (!gpxXML) {
+    document.getElementById('dropZone').classList.add('validation-error');
+    mostrarAviso('Carga una ruta GPX primero');
+    isValid = false;
+  }
+  if (!isValid) return;
+
+  ordenarWaypointsPorTrack();
+
+  // Datos base
+  const trkpts = Array.from(gpxXML.getElementsByTagName('trkpt'));
+  let container = document.getElementById('tables-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'tables-container';
+    document.body.appendChild(container);
+  }
+  container.innerHTML = '';
+  container.style.display = 'block';
+
+  // Inicializaciones para acumulados
+  let acumuladoDist = 0, acumuladoPos = 0, acumuladoNeg = 0;
+  let acumuladoTiempo = 0; // en minutos
+  let horaInicio = "08:00"; // Valor inicial por defecto, pero editable abajo
+  let notasArray = Array(waypoints.length).fill(""); // Notas de tramo
+  let penalizaciones = Array(waypoints.length).fill(0); // Penalización %
+  let descansos = Array(waypoints.length).fill(0); // Descanso en minutos
+  let decisionPoints = Array(waypoints.length).fill(false);
+
+  // Crear tabla
+  const tabla = document.createElement('table');
+  tabla.className = 'tabla-waypoints';
+
+  // Cabecera compleja
+  tabla.innerHTML = `
+    <thead>
+      <tr>
+        <th rowspan="2">Waypoint</th>
+        <th colspan="3">Distance</th>
+        <th colspan="6">Timing</th>
+        <th rowspan="2">Notes</th>
+      </tr>
+      <tr>
+        <th>Position</th>
+        <th>Segment</th>
+        <th>Route</th>
+        <th>Segment</th>
+        <th>Penalty (%)</th>
+        <th>Rest (min)</th>
+        <th>Total</th>
+        <th>Prog.</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = tabla.querySelector('tbody');
+
+  // Recorrer waypoints
+  for (let i = 0; i < waypoints.length; i++) {
+    const wpt = waypoints[i];
+    const isStart = (i === 0);
+    const isEnd = (i === waypoints.length - 1);
+
+    // Coordenadas UTM (simplificadas; puedes mejorar con tu función)
+    const utm = convertirUTM(wpt.lat, wpt.lon);
+    // Ejemplo de string UTM, puedes adaptar el formato real
+    const utmStr = `${String(Math.round(utm.x*1000)).padStart(5,"0")}E ${String(Math.round(utm.y)).slice(0,6)}N`;
+
+    // Altitud
+    const altitud = Math.round(wpt.ele) + "m";
+
+    // Cálculos de tramo/segmento
+    let segPos = 0, segNeg = 0, segDist = 0, segTiempo = 0;
+    if (!isStart) {
+      // Cálculo de tramo desde anterior
+      const prev = waypoints[i-1];
+      // Busca los trackpoints entre prev y wpt
+      const idxIni = prev._trkIdx, idxFin = wpt._trkIdx;
+      let prevEle = trkpts[idxIni] ? parseFloat(trkpts[idxIni].getElementsByTagName('ele')[0].textContent) : prev.ele;
+      let segAltMin = prevEle, segAltMax = prevEle;
+      for (let j = idxIni+1; j <= idxFin; j++) {
+        const pt = trkpts[j];
+        const ele = pt && pt.getElementsByTagName('ele')[0] ? parseFloat(pt.getElementsByTagName('ele')[0].textContent) : prevEle;
+        segPos += Math.max(0, ele - prevEle);
+        segNeg += Math.max(0, prevEle - ele);
+        segAltMin = Math.min(segAltMin, ele);
+        segAltMax = Math.max(segAltMax, ele);
+        // Distancia entre puntos
+        const lat1 = parseFloat(trkpts[j-1].getAttribute('lat'));
+        const lon1 = parseFloat(trkpts[j-1].getAttribute('lon'));
+        const lat2 = parseFloat(pt.getAttribute('lat'));
+        const lon2 = parseFloat(pt.getAttribute('lon'));
+        segDist += haversine(lat1, lon1, lat2, lon2);
+        prevEle = ele;
+      }
+      // Tiempos por tramo (usa tus parámetros de velocidad si quieres)
+      segTiempo = (segDist/4)*60 + (segPos/300) + (segNeg/500); // En minutos
+    }
+
+    // Acumular valores
+    if (!isStart) {
+      acumuladoDist += segDist;
+      acumuladoPos += segPos;
+      acumuladoNeg += segNeg;
+      // Aplicar penalización y descanso
+      let tPen = segTiempo * (1 + (penalizaciones[i]/100));
+      let tDesc = descansos[i];
+      segTiempo = tPen + tDesc;
+      acumuladoTiempo += segTiempo;
+    }
+
+    // Progresión
+    let prog = (acumuladoDist / parseFloat(document.getElementById('distancia').textContent)) * 100;
+    if (isNaN(prog)) prog = 0;
+
+    // Hora de paso
+    let horaPaso = horaInicio;
+    if (!isStart) {
+      // Sumar todos los tiempos de tramos anteriores y este
+      let mins = Math.round(acumuladoTiempo);
+      let [h, m] = horaInicio.split(":").map(x=>parseInt(x));
+      m += mins;
+      h += Math.floor(m / 60);
+      m = m % 60;
+      horaPaso = (""+h).padStart(2,"0")+":"+(""+m).padStart(2,"0");
+    }
+
+    // Render fila
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="waypoint-nombre ${isStart?'waypoint-inicio':''} ${isEnd?'waypoint-fin':''}">
+        ${isStart ? 'Start: ' : isEnd ? 'End: ' : ''}${wpt.name}
+        <br>
+        <label><input type="checkbox" class="decision-checkbox" data-wpt="${i}"> Decision point</label>
+      </td>
+      <td>
+        <div class="coordenada">${utmStr}</div>
+        <div class="altitud">${altitud}</div>
+      </td>
+      <td>
+        ${isStart ? '—' : `
+          <div><span class="positivo">↑${Math.round(segPos)}m</span></div>
+          <div><span class="negativo">↓${Math.round(segNeg)}m</span></div>
+          <div><span class="distancia">${segDist.toFixed(2)}km</span></div>
+        `}
+      </td>
+      <td>
+        <div><span class="positivo">↑${Math.round(acumuladoPos)}m</span></div>
+        <div><span class="negativo">↓${Math.round(acumuladoNeg)}m</span></div>
+        <div><span class="distancia">${acumuladoDist.toFixed(2)}km</span></div>
+      </td>
+      <td class="tiempo-tramo">
+        ${isStart ? '—' : minutosAHHMM(segTiempo)}
+      </td>
+      <td class="editable-cell" data-type="penalty" data-idx="${i}">
+        ${isStart ? '—' : `<span class="penalty-val">0%</span><span class="edit-lapiz" title="Editar penalización">&#9998;</span>`}
+      </td>
+      <td class="editable-cell" data-type="rest" data-idx="${i}">
+        ${isStart ? '—' : `<span class="rest-val">0min</span><span class="edit-lapiz" title="Editar descanso">&#9998;</span>`}
+      </td>
+      <td class="tiempo-total">
+        ${minutosAHHMM(acumuladoTiempo)}
+      </td>
+      <td>
+        ${Math.round(prog)}%
+      </td>
+      <td class="editable-cell hora-td" data-type="hora" data-idx="${i}">
+        ${isStart ? `<input type="text" class="hora-editable" value="${horaInicio}" data-idx="${i}">` : `<span>${horaPaso}</span>`}
+      </td>
+      <td class="editable-cell notas-td" data-type="notas" data-idx="${i}">
+        <span class="notes-text">No notes</span>
+        <span class="edit-lapiz" title="Editar notas">&#9998;</span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  container.appendChild(tabla);
+
+  // Eventos de edición inline
+  tabla.addEventListener('click', function(e) {
+    // Penalización
+    if (e.target.classList.contains('edit-lapiz') && e.target.parentNode.dataset.type === 'penalty') {
+      const idx = parseInt(e.target.parentNode.dataset.idx);
+      const td = e.target.parentNode;
+      td.innerHTML = `<input type="number" min="0" max="100" value="0" style="width:3em;"> <span>%</span>
+        <span class="edit-lapiz" title="Guardar">&#10004;</span>`;
+      td.querySelector('input').focus();
+      td.querySelector('.edit-lapiz').onclick = () => { 
+        const val = parseInt(td.querySelector('input').value) || 0;
+        penalizaciones[idx] = val;
+        generarTablaWaypoints();
+      }
+    }
+    // Descanso
+    if (e.target.classList.contains('edit-lapiz') && e.target.parentNode.dataset.type === 'rest') {
+      const idx = parseInt(e.target.parentNode.dataset.idx);
+      const td = e.target.parentNode;
+      td.innerHTML = `<input type="number" min="0" max="240" value="0" style="width:3em;"> <span>min</span>
+        <span class="edit-lapiz" title="Guardar">&#10004;</span>`;
+      td.querySelector('input').focus();
+      td.querySelector('.edit-lapiz').onclick = () => { 
+        const val = parseInt(td.querySelector('input').value) || 0;
+        descansos[idx] = val;
+        generarTablaWaypoints();
+      }
+    }
+    // Notas
+    if (e.target.classList.contains('edit-lapiz') && e.target.parentNode.dataset.type === 'notas') {
+      const idx = parseInt(e.target.parentNode.dataset.idx);
+      const td = e.target.parentNode;
+      td.innerHTML = `<input type="text" value="${notasArray[idx] || ""}" style="width:90%;"> 
+        <span class="edit-lapiz" title="Guardar">&#10004;</span>`;
+      td.querySelector('input').focus();
+      td.querySelector('.edit-lapiz').onclick = () => {
+        notasArray[idx] = td.querySelector('input').value;
+        generarTablaWaypoints();
+      }
+    }
+    // Hora de inicio
+    if (e.target.classList.contains('hora-editable')) {
+      e.target.onchange = function() {
+        horaInicio = e.target.value;
+        generarTablaWaypoints();
+      }
+    }
   });
+}
+
+// Función auxiliar: minutos a hh:mm
+function minutosAHHMM(mins) {
+  mins = Math.round(mins || 0);
+  const h = Math.floor(mins/60);
+  const m = mins%60;
+  return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;
 }

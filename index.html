@@ -34,11 +34,16 @@
   <section id="group-section">
     <label>
       Número de personas:
-      <input type="number" id="numPersonas" min="1" value="1">
+      <input type="number" id="numPersonas" min="1" placeholder="Introduce número">
     </label>
     <label>
-      Edad media de chavales:
-      <input type="number" id="edadMedia" min="1" value="14">
+      Nivel técnico del grupo:
+      <select id="nivelTecnico">
+        <option value="">Selecciona nivel</option>
+        <option value="principiante">Principiantes</option>
+        <option value="intermedio">Intermedio</option>
+        <option value="alto">Alto</option>
+      </select>
     </label>
     <button id="generarTablaBtn">Generar tabla</button>
   </section>
@@ -128,5 +133,12 @@
   </div>
 
   <script src="script.js"></script>
+  <!-- Para exportación a Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+
+  <!-- Para exportación a PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.15/jspdf.plugin.autotable.min.js"></script>
+  <div id="tables-container" style="display: block;"></div>
 </body>
 </html>
