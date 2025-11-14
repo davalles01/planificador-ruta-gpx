@@ -881,6 +881,12 @@ function convertirUTM(lat, lon) {
     };
 }
 
+// Variables globales para penalizaciones, descansos y notas (persisten entre renders)
+let penalizaciones = [];
+let descansos = [];
+let notasArray = [];
+let horaInicio = "08:00";
+
 function generarTablaWaypoints() {
   // Validación previa
   let isValid = true;
@@ -914,14 +920,14 @@ function generarTablaWaypoints() {
   container.innerHTML = '';
   container.style.display = 'block';
 
+  // Inicialización de arrays persistentes
+  if (penalizaciones.length !== waypoints.length) penalizaciones = Array(waypoints.length).fill(0);
+  if (descansos.length !== waypoints.length) descansos = Array(waypoints.length).fill(0);
+  if (notasArray.length !== waypoints.length) notasArray = Array(waypoints.length).fill("");
+
   // Inicializaciones para acumulados
   let acumuladoDist = 0, acumuladoPos = 0, acumuladoNeg = 0;
   let acumuladoTiempo = 0; // en minutos
-  let horaInicio = "08:00"; // Valor inicial por defecto, pero editable abajo
-  let notasArray = Array(waypoints.length).fill(""); // Notas de tramo
-  let penalizaciones = Array(waypoints.length).fill(0); // Penalización %
-  let descansos = Array(waypoints.length).fill(0); // Descanso en minutos
-  let decisionPoints = Array(waypoints.length).fill(false);
 
   // Crear tabla
   const tabla = document.createElement('table');
@@ -960,7 +966,6 @@ function generarTablaWaypoints() {
 
     // Coordenadas UTM (simplificadas; puedes mejorar con tu función)
     const utm = convertirUTM(wpt.lat, wpt.lon);
-    // Ejemplo de string UTM, puedes adaptar el formato real
     const utmStr = `${String(Math.round(utm.x*1000)).padStart(5,"0")}E ${String(Math.round(utm.y)).slice(0,6)}N`;
 
     // Altitud
@@ -969,19 +974,14 @@ function generarTablaWaypoints() {
     // Cálculos de tramo/segmento
     let segPos = 0, segNeg = 0, segDist = 0, segTiempo = 0;
     if (!isStart) {
-      // Cálculo de tramo desde anterior
       const prev = waypoints[i-1];
-      // Busca los trackpoints entre prev y wpt
       const idxIni = prev._trkIdx, idxFin = wpt._trkIdx;
       let prevEle = trkpts[idxIni] ? parseFloat(trkpts[idxIni].getElementsByTagName('ele')[0].textContent) : prev.ele;
-      let segAltMin = prevEle, segAltMax = prevEle;
       for (let j = idxIni+1; j <= idxFin; j++) {
         const pt = trkpts[j];
         const ele = pt && pt.getElementsByTagName('ele')[0] ? parseFloat(pt.getElementsByTagName('ele')[0].textContent) : prevEle;
         segPos += Math.max(0, ele - prevEle);
         segNeg += Math.max(0, prevEle - ele);
-        segAltMin = Math.min(segAltMin, ele);
-        segAltMax = Math.max(segAltMax, ele);
         // Distancia entre puntos
         const lat1 = parseFloat(trkpts[j-1].getAttribute('lat'));
         const lon1 = parseFloat(trkpts[j-1].getAttribute('lon'));
@@ -991,7 +991,10 @@ function generarTablaWaypoints() {
         prevEle = ele;
       }
       // Tiempos por tramo (usa tus parámetros de velocidad si quieres)
-      segTiempo = (segDist/4)*60 + (segPos/300) + (segNeg/500); // En minutos
+      let baseTiempo = (segDist/4)*60 + (segPos/300) + (segNeg/500); // En minutos
+      let penalizacion = penalizaciones[i] || 0;
+      let descanso = descansos[i] || 0;
+      segTiempo = baseTiempo * (1 + penalizacion/100) + descanso;
     }
 
     // Acumular valores
@@ -999,10 +1002,6 @@ function generarTablaWaypoints() {
       acumuladoDist += segDist;
       acumuladoPos += segPos;
       acumuladoNeg += segNeg;
-      // Aplicar penalización y descanso
-      let tPen = segTiempo * (1 + (penalizaciones[i]/100));
-      let tDesc = descansos[i];
-      segTiempo = tPen + tDesc;
       acumuladoTiempo += segTiempo;
     }
 
@@ -1013,7 +1012,6 @@ function generarTablaWaypoints() {
     // Hora de paso
     let horaPaso = horaInicio;
     if (!isStart) {
-      // Sumar todos los tiempos de tramos anteriores y este
       let mins = Math.round(acumuladoTiempo);
       let [h, m] = horaInicio.split(":").map(x=>parseInt(x));
       m += mins;
@@ -1021,6 +1019,9 @@ function generarTablaWaypoints() {
       m = m % 60;
       horaPaso = (""+h).padStart(2,"0")+":"+(""+m).padStart(2,"0");
     }
+
+    // Notas
+    let notasTxt = notasArray[i] && notasArray[i].trim() !== "" ? notasArray[i] : "<span class=\"notes-text\">No notes</span>";
 
     // Render fila
     const tr = document.createElement('tr');
@@ -1050,10 +1051,10 @@ function generarTablaWaypoints() {
         ${isStart ? '—' : minutosAHHMM(segTiempo)}
       </td>
       <td class="editable-cell" data-type="penalty" data-idx="${i}">
-        ${isStart ? '—' : `<span class="penalty-val">0%</span><span class="edit-lapiz" title="Editar penalización">&#9998;</span>`}
+        ${isStart ? '—' : `<span class="penalty-val">${penalizaciones[i] || 0}%</span><span class="edit-lapiz" title="Editar penalización">&#9998;</span>`}
       </td>
       <td class="editable-cell" data-type="rest" data-idx="${i}">
-        ${isStart ? '—' : `<span class="rest-val">0min</span><span class="edit-lapiz" title="Editar descanso">&#9998;</span>`}
+        ${isStart ? '—' : `<span class="rest-val">${descansos[i] || 0}min</span><span class="edit-lapiz" title="Editar descanso">&#9998;</span>`}
       </td>
       <td class="tiempo-total">
         ${minutosAHHMM(acumuladoTiempo)}
@@ -1065,7 +1066,7 @@ function generarTablaWaypoints() {
         ${isStart ? `<input type="text" class="hora-editable" value="${horaInicio}" data-idx="${i}">` : `<span>${horaPaso}</span>`}
       </td>
       <td class="editable-cell notas-td" data-type="notas" data-idx="${i}">
-        <span class="notes-text">No notes</span>
+        ${notasTxt}
         <span class="edit-lapiz" title="Editar notas">&#9998;</span>
       </td>
     `;
@@ -1080,10 +1081,10 @@ function generarTablaWaypoints() {
     if (e.target.classList.contains('edit-lapiz') && e.target.parentNode.dataset.type === 'penalty') {
       const idx = parseInt(e.target.parentNode.dataset.idx);
       const td = e.target.parentNode;
-      td.innerHTML = `<input type="number" min="0" max="100" value="0" style="width:3em;"> <span>%</span>
+      td.innerHTML = `<input type="number" min="0" max="100" value="${penalizaciones[idx] || 0}" style="width:3em;"> <span>%</span>
         <span class="edit-lapiz" title="Guardar">&#10004;</span>`;
       td.querySelector('input').focus();
-      td.querySelector('.edit-lapiz').onclick = () => { 
+      td.querySelector('.edit-lapiz').onclick = () => {
         const val = parseInt(td.querySelector('input').value) || 0;
         penalizaciones[idx] = val;
         generarTablaWaypoints();
@@ -1093,10 +1094,10 @@ function generarTablaWaypoints() {
     if (e.target.classList.contains('edit-lapiz') && e.target.parentNode.dataset.type === 'rest') {
       const idx = parseInt(e.target.parentNode.dataset.idx);
       const td = e.target.parentNode;
-      td.innerHTML = `<input type="number" min="0" max="240" value="0" style="width:3em;"> <span>min</span>
+      td.innerHTML = `<input type="number" min="0" max="240" value="${descansos[idx] || 0}" style="width:3em;"> <span>min</span>
         <span class="edit-lapiz" title="Guardar">&#10004;</span>`;
       td.querySelector('input').focus();
-      td.querySelector('.edit-lapiz').onclick = () => { 
+      td.querySelector('.edit-lapiz').onclick = () => {
         const val = parseInt(td.querySelector('input').value) || 0;
         descansos[idx] = val;
         generarTablaWaypoints();
@@ -1106,7 +1107,7 @@ function generarTablaWaypoints() {
     if (e.target.classList.contains('edit-lapiz') && e.target.parentNode.dataset.type === 'notas') {
       const idx = parseInt(e.target.parentNode.dataset.idx);
       const td = e.target.parentNode;
-      td.innerHTML = `<input type="text" value="${notasArray[idx] || ""}" style="width:90%;"> 
+      td.innerHTML = `<input type="text" value="${notasArray[idx] || ""}" style="width:90%;">
         <span class="edit-lapiz" title="Guardar">&#10004;</span>`;
       td.querySelector('input').focus();
       td.querySelector('.edit-lapiz').onclick = () => {
