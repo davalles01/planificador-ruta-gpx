@@ -11,6 +11,9 @@ let selectedWaypoint = null;
 let waypointHistory = [];
 let waypointHistoryIndex = -1;
 
+// Decorador de la polyline
+let polylineDecorator = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   setupFileInput();
@@ -497,12 +500,12 @@ function hideWaypointEditor() {
 function parseTrack(xml) {
   if (trackPolyline) {
     map.removeLayer(trackPolyline);
-    elevationControl.clear();  // Limpiar perfil anterior
+    if (polylineDecorator) map.removeLayer(polylineDecorator); // Limpiar flechas anteriores
+    elevationControl.clear();
   }
 
   const trkpts = xml.getElementsByTagName('trkpt');
   const latlngs = [];
-
   for (let pt of trkpts) {
     const lat = parseFloat(pt.getAttribute('lat'));
     const lon = parseFloat(pt.getAttribute('lon'));
@@ -515,14 +518,35 @@ function parseTrack(xml) {
   }
 
   if (latlngs.length > 0) {
-    // Polyline para mostrar en el mapa
-    trackPolyline = L.polyline(latlngs, { color: 'red' }).addTo(map);
+    trackPolyline = L.polyline(latlngs, { color: 'red', weight: 5 }).addTo(map);
     map.fitBounds(trackPolyline.getBounds());
 
-    // Solo añadir el track al perfil de elevación
+    // Flechas de dirección cada N puntos
+    const totalPoints = latlngs.length;
+    let step = Math.floor(totalPoints / 20); // Ajusta "20" para más/menos flechas
+    if (step < 1) step = 1;
+
+    // Borra decoraciones previas si las hay
+    if (polylineDecorator) map.removeLayer(polylineDecorator);
+
+    // Crea el decorador
+    polylineDecorator = L.polylineDecorator(trackPolyline, {
+      patterns: [
+        {
+          offset: 0,
+          repeat: `${step}px`, // O usa `${step*3}px` para espaciar más
+          symbol: L.Symbol.arrowHead({
+            headAngle: 35,
+            pixelSize: 12,
+            polygon: true,
+            pathOptions: { stroke: true, color: '#fffb00ff', weight: 2, fill: true, fillColor: '#fffb00ff', fillOpacity: 1 }
+          })
+        }
+      ]
+    }).addTo(map);
+
     elevationControl.clear();
     elevationControl.addData(trackPolyline);
-
     calcularInfoTrack(xml);
   }
 }
