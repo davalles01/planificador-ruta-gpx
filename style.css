@@ -743,3 +743,23 @@ input, textarea {
   padding: 0.1em 0.4em;
   width: 4.5em;
 }
+
+/* BOTÓN PDF*/ 
+
+.pdf-download-btn {
+  padding: 1rem 2.5rem;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(33, 118, 210, 0.11);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.pdf-download-btn:hover {
+  background: #0d47a1;
+}

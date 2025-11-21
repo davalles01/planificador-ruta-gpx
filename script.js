@@ -1099,6 +1099,24 @@ function generarTablaWaypoints() {
 
   container.appendChild(tabla);
 
+  // Elimina botón anterior si existe
+  let oldBtn = document.getElementById('downloadPDFBtn');
+  if (oldBtn) oldBtn.remove();
+
+  // Crea y añade el botón
+  const pdfBtn = document.createElement('button');
+  pdfBtn.id = "downloadPDFBtn";
+  pdfBtn.textContent = "Descargar en Formato PDF";
+  pdfBtn.className = "pdf-download-btn";
+  container.appendChild(pdfBtn);
+
+  // Centrar el botón
+  pdfBtn.style.display = "block";
+  pdfBtn.style.margin = "2rem auto 0 auto";
+
+  // Evento
+  pdfBtn.onclick = descargarTablaPDF;
+
   // Eventos de edición inline
   tabla.addEventListener('click', function(e) {
     // Penalización
@@ -1155,4 +1173,210 @@ function minutosAHHMM(mins) {
   const h = Math.floor(mins/60);
   const m = mins%60;
   return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;
+}
+
+async function descargarTablaPDF() {
+  // 1. Recoge datos generales
+  const nombre = document.getElementById('trackName').value.trim() || "Ruta GPX";
+  const distancia = document.getElementById('distancia').textContent || "";
+  const desnivelPos = document.getElementById('desnivelPos').textContent || "";
+  const desnivelNeg = document.getElementById('desnivelNeg').textContent || "";
+  const duracion = document.getElementById('duracion').textContent || "";
+
+  const doc = new jspdf.jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const marginX = 15;
+  const usableWidth = doc.internal.pageSize.getWidth() - 2 * marginX;
+  let y = 18;
+
+  // Función para dividir texto largo en líneas
+  function splitTextToLines(text, maxWidth, fontSize = 21, fontStyle = 'bold') {
+    doc.setFont("helvetica", fontStyle);
+    doc.setFontSize(fontSize);
+    return doc.splitTextToSize(text, maxWidth);
+  }
+
+  // Título general (adaptado a varias líneas si es necesario)
+  let tituloLineas = splitTextToLines(nombre, usableWidth);
+  doc.setFontSize(21);
+  doc.setFont("helvetica", "bold");
+  let tituloY = y;
+  tituloLineas.forEach((line, idx) => {
+    doc.text(line, doc.internal.pageSize.getWidth()/2, tituloY, { align: "center" });
+    tituloY += 8;
+  });
+  y = tituloY + 2;
+
+  // Datos generales de la ruta
+  doc.setFontSize(12);
+  doc.setFont("helvetica","normal");
+  doc.text(`Distancia:`, marginX, y);           doc.text(`${distancia} km`, marginX+38, y);
+  y += 6;
+  doc.text(`Desnivel positivo:`, marginX, y);   doc.text(`${desnivelPos} m`, marginX+38, y);
+  y += 6;
+  doc.text(`Desnivel negativo:`, marginX, y);   doc.text(`${desnivelNeg} m`, marginX+38, y);
+  y += 6;
+  doc.text(`Duración estimada:`, marginX, y);   doc.text(`${duracion}`, marginX+38, y);
+  y += 10;
+
+  // Tablas por tramo: varias por página, máximo 3 por página
+  const tabla = document.querySelector('.tabla-waypoints');
+  const filas = [...tabla.querySelectorAll("tbody tr")];
+  const tramosPorPagina = 3;
+  let tramosEnPag = 0;
+
+  // Extraer cabeceras relevantes (las de la fila 2 del thead)
+  // No hace falta, definidas manualmente
+
+  // Función para limpiar contenido de celda y formatear desniveles
+  const limpiarCelda = (html, tipo = "") => {
+    let txt = html.replace(/[\u2191\u2193]/g, '')
+                  .replace(/&nbsp;/g, " ")
+                  .replace(/<\/?[^>]+(>|$)/g, "")
+                  .replace(/\s+/g, " ")
+                  .trim();
+    // Extraer desniveles y formatear +/-
+    if (tipo === "desnivel") {
+      // Busca todos los valores de desnivel y antepone +/-
+      txt = txt.replace(/Desnivel \+?:?\s*(\d+)m/gi, (m, p1) => `+${p1} m`);
+      txt = txt.replace(/Desnivel -:?\s*(\d+)m/gi, (m, p1) => `-${p1} m`);
+      txt = txt.replace(/↑\s*(\d+)m/gi, (m, p1) => `+${p1} m`);
+      txt = txt.replace(/↓\s*(\d+)m/gi, (m, p1) => `-${p1} m`);
+    }
+    // Para las distancias también
+    txt = txt.replace(/(\d+\.\d+)km/g, '$1 km');
+    return txt;
+  };
+
+  y += 2;
+
+  for (let i = 0; i < filas.length; i++) {
+
+    // PREPARA DATOS DEL TRAMO Y LA TABLA
+    let celdas = Array.from(filas[i].children);
+
+    // Nombres de campos
+    let nombreTramo = filas[i].querySelector(".waypoint-nombre")?.childNodes[0]?.textContent.trim() || `Waypoint ${i+1}`;
+    nombreTramo = nombreTramo.replace(/\n.*$/,''); // Quitar decision point
+    let nombreTramoLineas = splitTextToLines(nombreTramo, usableWidth, 13, 'bold');
+
+    // Prepara los datos clave (limpiando texto y símbolos)
+    let datosFila = [
+      ["Posición", limpiarCelda(celdas[1]?.innerText || "")],
+      ["Desnivel y Distancia (segmento)", limpiarCelda(celdas[2]?.innerText || "", "desnivel")],
+      ["Desnivel y Distancia (acumulado)", limpiarCelda(celdas[3]?.innerText || "", "desnivel")],
+      ["Tiempo tramo", limpiarCelda(celdas[4]?.innerText || "")],
+      ["Penalización", limpiarCelda(celdas[5]?.innerText || "")],
+      ["Descanso", limpiarCelda(celdas[6]?.innerText || "")],
+      ["Tiempo total", limpiarCelda(celdas[7]?.innerText || "")],
+      ["Progresión", limpiarCelda(celdas[8]?.innerText || "")],
+      ["Hora", limpiarCelda(celdas[9]?.innerText || "")],
+      ["Notas", limpiarCelda(celdas[10]?.innerText || "")]
+    ];
+
+    // Calcula altura estimada: título + tabla
+    let tempY = y;
+    tempY += nombreTramoLineas.length * 5.5 + 2;
+    tempY += (datosFila.length * 6.5) + 10; // tabla pequeña
+
+    // Si no cabe, pasa página
+    if (tempY > doc.internal.pageSize.getHeight() - 25) {
+      doc.addPage();
+      y = 16;
+      tramosEnPag = 0;
+    }
+
+    // Título del tramo, adaptado a varias líneas si es necesario
+    doc.setFontSize(13);
+    doc.setFont("helvetica","bold");
+    let tramoY = y;
+    nombreTramoLineas.forEach((line, idx) => {
+      doc.text(line, marginX, tramoY);
+      tramoY += 5.5;
+    });
+    y = tramoY;
+
+    // Define el color de cabecera según posición
+    let cabeceraColor = [109,143,163]; // gris azulado por defecto
+    if (i === 0) cabeceraColor = [56,204,108]; // verde
+    else if (i === filas.length-1) cabeceraColor = [230,61,61]; // rojo
+
+    // Usa autoTable en modo compacto
+    doc.autoTable({
+      head: [["Campo", "Valor"]],
+      body: datosFila,
+      startY: y,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 1.5, rowPageBreak: 'avoid', halign: 'left', valign: 'middle', overflow: 'linebreak', minCellHeight: 5 },
+      headStyles: { fillColor: cabeceraColor, textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 10 },
+      margin: { left: marginX, right: marginX },
+      tableWidth: usableWidth,
+      columnStyles: { 0: {cellWidth: 38}, 1: {cellWidth: usableWidth-38} }
+    });
+
+    y = doc.lastAutoTable.finalY + 7;
+    tramosEnPag++;
+    // Si ya hemos puesto los tramos por página máximos, fuerza salto, aunque el siguiente quepa
+    if (tramosEnPag >= tramosPorPagina) {
+      doc.addPage();
+      y = 16;
+      tramosEnPag = 0;
+    }
+  }
+
+  // Añadir página con capturas de mapa y perfil de elevación
+  try {
+    // Antes de capturar, ajusta el zoom del mapa con fitBounds y un "padding extra" para que salga bien grande el track
+    if (trackPolyline && typeof trackPolyline.getBounds === "function") {
+      // Ajusta el mapa: centra y hace zoom al track con padding pequeño
+      map.fitBounds(trackPolyline.getBounds(), {padding: [25,25], maxZoom: 14});
+      // Espera a que el mapa renderice
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    doc.addPage();
+    y = 16;
+    doc.setFontSize(13);
+    doc.setFont("helvetica","bold");
+    doc.text("Vista del Mapa", doc.internal.pageSize.getWidth()/2, y, { align: "center" });
+    y += 3;
+
+    // Captura solo el mapa Leaflet (canvas)
+    const mapDiv = document.getElementById('map');
+    const mapCanvas = await html2canvas(mapDiv, {
+      useCORS: true,
+      backgroundColor: null,
+      width: mapDiv.offsetWidth,
+      height: mapDiv.offsetHeight,
+      windowWidth: document.body.scrollWidth,
+      windowHeight: document.body.scrollHeight,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY
+    });
+    const imgData = mapCanvas.toDataURL("image/png");
+    const pageWidth = doc.internal.pageSize.getWidth() - 2*marginX;
+    const mapRatio = mapDiv.offsetHeight / mapDiv.offsetWidth;
+    const imgHeight = pageWidth * mapRatio * 0.6; // 0.6 para que no sea tan grande!
+    doc.addImage(imgData, 'PNG', marginX, y+4, pageWidth, imgHeight, undefined, 'FAST');
+
+    y += imgHeight + 14;
+
+    // Captura del perfil de elevación
+    doc.setFontSize(13);
+    doc.setFont("helvetica","bold");
+    doc.text("Perfil de Elevación", doc.internal.pageSize.getWidth()/2, y, { align: "center" });
+    y += 3;
+
+    const elevDiv = document.getElementById('elevation-div');
+    const elevCanvas = await html2canvas(elevDiv, {useCORS: true, backgroundColor: null});
+    const elevImg = elevCanvas.toDataURL("image/png");
+    const elevRatio = elevDiv.offsetHeight / elevDiv.offsetWidth;
+    const elevHeight = pageWidth * elevRatio * 0.8; // 0.8 = más pequeño que el mapa
+    doc.addImage(elevImg, 'PNG', marginX, y+4, pageWidth, elevHeight, undefined, 'FAST');
+  } catch (e) {
+    // Si falla, no añadir imágenes
+    console.warn("No se ha podido capturar el mapa o el perfil:", e);
+  }
+
+  // Descarga
+  doc.save(`${nombre.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_plan.pdf`);
 }
